@@ -88,7 +88,7 @@ if __name__ == '__main__':
             # Define Unet block
             unet = smp.Unet(
                 encoder_weights="imagenet",
-                in_channels=2,
+                in_channels=opt.in_channels,
                 classes=10,
             )
             # Define LTM predictor using the unet
