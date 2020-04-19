@@ -17,7 +17,7 @@ from jma_pytorch_dataset import *
 from scaler import *
 from train_valid_epoch_ltm import *
 from utils import Logger
-from opts import parse_opts
+from opts_ltm import parse_opts
 from loss_funcs import *
 
 def count_parameters(model,f):
@@ -84,7 +84,16 @@ if __name__ == '__main__':
         if opt.model_name == 'ltm':
             # LTM model
             import segmentation_models_pytorch as smp
-            model = smp.Unet()
+            from models.ltm_predictor import LTM_predictor
+            # Define Unet block
+            unet = smp.Unet(
+                encoder_weights="imagenet",
+                in_channels=2,
+                classes=10,
+            )
+            # Define LTM predictor using the unet
+            model = LTM_predictor(unet, opt.in_channels).cuda()
+            #import pdb;pdb.set_trace()
     
         if opt.transfer_path != 'None':
             # Use pretrained weights for transfer learning
@@ -139,23 +148,23 @@ if __name__ == '__main__':
                 # save the trained model for every checkpoint
                 # (1) as binary 
                 torch.save(model,os.path.join(opt.result_path,
-                                                 'trained_CLSTM_epoch%03d.model' % epoch))
+                                                 'trained_LTM_epoch%03d.model' % epoch))
                 # (2) as state dictionary
                 torch.save(model.state_dict(),
                            os.path.join(opt.result_path,
-                                        'trained_CLSTM_epoch%03d.dict' % epoch))
+                                        'trained_LTM_epoch%03d.dict' % epoch))
         # save the trained model
         # (1) as binary 
-        torch.save(model,os.path.join(opt.result_path, 'trained_CLSTM.model'))
+        torch.save(model,os.path.join(opt.result_path, 'trained_LTM.model'))
         # (2) as state dictionary
         torch.save(model.state_dict(),
-                   os.path.join(opt.result_path, 'trained_CLSTM.dict'))
+                   os.path.join(opt.result_path, 'trained_LTM.dict'))
 
     # test datasets if specified
     if opt.test:
         if opt.no_train:
             #load pretrained model from results directory
-            model_fname = os.path.join(opt.result_path, 'trained_CLSTM.model')
+            model_fname = os.path.join(opt.result_path, 'trained_LTM.model')
             print('loading pretrained model:',model_fname)
             model = torch.load(model_fname)
             loss_fn = torch.nn.MSELoss()
