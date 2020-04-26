@@ -34,11 +34,12 @@ def one_step_ltm(Xin,T):
 
 class LTM_predictor(nn.Module):
     # LTM Predictor
-    def __init__(self, unet, in_channels):
+    def __init__(self, unet, in_channels, steps_in_itr):
         super(LTM_predictor, self).__init__()
         # initialize Unet
         self.unet = unet
         self.in_channels = in_channels
+        self.steps_in_itr= steps_in_itr
         
     def forward(self, input):
         x = input
@@ -57,9 +58,11 @@ class LTM_predictor(nn.Module):
         xt = one_step_ltm(x[:,-1,0,:,:],T)
         xout[:,0,0,:,:] = xt
         for i in range(1,tsize):
-            #print("time:",i)
             # calc time step
-            xt = one_step_ltm(xt,T)
+            for j in range(0,self.steps_in_itr):
+                #print("time:",i," step:",j)
+                #xt = one_step_ltm(xt,T)
+                xt = torch.sigmoid(one_step_ltm(xt,T))
             xout[:,i,0,:,:] = xt
         return xout
     

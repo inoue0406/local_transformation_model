@@ -92,7 +92,7 @@ if __name__ == '__main__':
                 classes=10,
             )
             # Define LTM predictor using the unet
-            model = LTM_predictor(unet, opt.in_channels).cuda()
+            model = LTM_predictor(unet, opt.in_channels, opt.steps_in_itr).cuda()
             #import pdb;pdb.set_trace()
     
         if opt.transfer_path != 'None':

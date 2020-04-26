@@ -73,6 +73,11 @@ def parse_opts():
         type=float,
         help='Learning rate decay')
     parser.add_argument(
+        '--steps_in_itr',
+        default=1,
+        type=int,
+        help='Steps in a single time progress')
+    parser.add_argument(
         '--batch_size',
         default=10,
         type=int,
