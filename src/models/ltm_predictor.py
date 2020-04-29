@@ -61,7 +61,7 @@ class LTM_predictor(nn.Module):
             # calc time step
             for j in range(0,self.steps_in_itr):
                 #print("time:",i," step:",j)
-                #xt = one_step_ltm(xt,T)
+                xt = one_step_ltm(xt,T)
                 xt = torch.sigmoid(one_step_ltm(xt,T))
             xout[:,i,0,:,:] = xt
         return xout
