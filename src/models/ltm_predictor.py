@@ -55,13 +55,13 @@ class LTM_predictor(nn.Module):
         xout = Variable(torch.zeros(bsize, tsize, channels, height, width)).cuda()
         xt = Variable(torch.zeros(bsize, channels, height, width)).cuda()
         # start from the latest frame
-        xt = one_step_ltm(x[:,-1,0,:,:],T)
+        xt = torch.sigmoid(one_step_ltm(x[:,-1,0,:,:],T))
         xout[:,0,0,:,:] = xt
         for i in range(1,tsize):
             # calc time step
             for j in range(0,self.steps_in_itr):
                 #print("time:",i," step:",j)
-                xt = one_step_ltm(xt,T)
+                #xt = one_step_ltm(xt,T)
                 xt = torch.sigmoid(one_step_ltm(xt,T))
             xout[:,i,0,:,:] = xt
         return xout
