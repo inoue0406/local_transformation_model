@@ -64,8 +64,9 @@ def parse_opts():
         help='weights used as a loss function')
     parser.add_argument(
         '--loss_used_step',
-        default=4,
+        default=[4],
         type=int,
+        nargs='*',
         help='number of future predictions to be used for loss evaluation')
     parser.add_argument(
         '--learning_rate',

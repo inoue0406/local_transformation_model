@@ -20,6 +20,20 @@ from utils import Logger
 from opts_ltm import parse_opts
 from loss_funcs import *
 
+def used_steps_epoch(loss_used_step,epochs):
+    # set used steps for loss evaluation in each epoch
+    steps_epoch = []
+    N = len(loss_used_step)
+    epn = int(epochs/N)
+    for i in range(N):
+        if i==(N-1):
+            # fill the remainder with the last item
+            n = epn + (epochs - epn*N)
+        else:
+            n = epn
+        steps_epoch.extend([loss_used_step[i]]*n)
+    return(steps_epoch)
+
 def count_parameters(model,f):
     for name,p in model.named_parameters():
         f.write("name,"+name+", Trainable, "+str(p.requires_grad)+",#params, "+str(p.numel())+"\n")
@@ -133,14 +147,18 @@ if __name__ == '__main__':
         valid_logger = Logger(
             os.path.join(opt.result_path, 'valid.log'),
             ['epoch', 'loss'])
+
+        # set used steps for each epoch
+        steps_epoch = used_steps_epoch(opt.loss_used_step,opt.n_epochs)
+        print("list of used steps for each epoch:\n",steps_epoch)
     
         # training 
         for epoch in range(1,opt.n_epochs+1):
-            # step scheduler
-            scheduler.step()
             # training & validation
             train_epoch(epoch,opt.n_epochs,train_loader,model,loss_fn,optimizer,
-                        train_logger,train_batch_logger,opt,scl)
+                        train_logger,train_batch_logger,opt,scl,steps_epoch[epoch-1])
+            # step scheduler
+            scheduler.step()
             #valid_epoch(epoch,opt.n_epochs,valid_loader,model,loss_fn,
             #            valid_logger,opt,scl)
 

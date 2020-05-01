@@ -17,9 +17,11 @@ from tools_mem import *
 # Training
 # --------------------------
 
-def train_epoch(epoch,num_epochs,train_loader,model,loss_fn,optimizer,train_logger,train_batch_logger,opt,scl):
+def train_epoch(epoch,num_epochs,train_loader,model,loss_fn,optimizer,
+                train_logger,train_batch_logger,opt,scl,steps_epoch):
     
     print('train at epoch {}'.format(epoch))
+    print('steps used for loss evaluation:',steps_epoch)
 
     losses = AverageMeter()
     
@@ -32,7 +34,7 @@ def train_epoch(epoch,num_epochs,train_loader,model,loss_fn,optimizer,train_logg
         output = model(input)
         #loss = loss_fn(output, target)
         #loss = loss_fn(output[:,0:4,:,:,:], target[:,0:4,:,:,:])
-        loss = loss_fn(output[:,0:opt.loss_used_step,:,:,:], target[:,0:opt.loss_used_step,:,:,:])
+        loss = loss_fn(output[:,0:steps_epoch,:,:,:], target[:,0:steps_epoch,:,:,:])
         loss.backward()
         #import pdb;pdb.set_trace()
         optimizer.step()
