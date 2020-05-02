@@ -70,7 +70,6 @@ def plot_comp_prediction(data_path,filelist,model_fname,batch_size,tdim_use,
         #input = Variable(sample_batched['past']).cpu()
         #target = Variable(sample_batched['future']).cpu()
         output = model(input)
-        import pdb;pdb.set_trace()
         
         # Output only selected data in df_sampled
         for n,fname in enumerate(fnames):

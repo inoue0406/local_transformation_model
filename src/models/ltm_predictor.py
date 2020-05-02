@@ -64,5 +64,6 @@ class LTM_predictor(nn.Module):
                 #xt = one_step_ltm(xt,T)
                 xt = torch.sigmoid(one_step_ltm(xt,T))
             xout[:,i,0,:,:] = xt
+            # xt_prev = xt.clone()
         return xout
     
