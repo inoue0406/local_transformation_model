@@ -49,6 +49,10 @@ def train_epoch(epoch,num_epochs,train_loader,model,loss_fn,optimizer,
             'lr': optimizer.param_groups[0]['lr']
         })
 
+        # chk max for model and data
+        print('target mean:',np.mean(target.cpu().numpy(),(0,2,3,4)))
+        print('output mean:',np.mean(output.cpu().detach().numpy(),(0,2,3,4)))
+
         if (i_batch+1) % 1 == 0:
             print ('Train Epoch [%d/%d], Iter [%d/%d] Loss: %.4e' 
                    %(epoch, num_epochs, i_batch+1, len(train_loader.dataset)//train_loader.batch_size, loss.item()))
@@ -125,6 +129,10 @@ def test_all(test_loader,model,loss_fn,opt,scl,threshold):
         # Forward
         output = model(input)
         loss = loss_fn(output, target)
+
+        # chk max for model and data
+        print('target mean:',np.mean(target.cpu().numpy(),(0,2,3,4)))
+        print('output mean:',np.mean(output.cpu().detach().numpy(),(0,2,3,4)))
         
         # apply evaluation metric
         Xtrue = scl.inv(target.data.cpu().numpy())

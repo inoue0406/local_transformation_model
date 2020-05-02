@@ -31,7 +31,7 @@ def one_step_ltm(Xin,T):
            X6*T[:,6,:,:] + X7*T[:,7,:,:] + X8*T[:,8,:,:] #+ \
 #           T[:,9,:,:]
 #           X3*T[:,3,:,:]                  + X5*T[:,5,:,:] + \
-# temp skip center
+# temp skip centerei
     return Xout
 
 class LTM_predictor(nn.Module):
