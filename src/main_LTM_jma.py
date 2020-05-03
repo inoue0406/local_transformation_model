@@ -101,13 +101,13 @@ if __name__ == '__main__':
             from models.ltm_predictor import LTM_predictor
             # Define Unet block
             unet = smp.Unet(
-                encoder_weights="imagenet",
+                encoder_weights=None,
+                activation=None,
                 in_channels=opt.in_channels,
                 classes=10,
             )
             # Define LTM predictor using the unet
             model = LTM_predictor(unet, opt.in_channels, opt.steps_in_itr).cuda()
-            #import pdb;pdb.set_trace()
     
         if opt.transfer_path != 'None':
             # Use pretrained weights for transfer learning

@@ -42,6 +42,7 @@ class LTM_predictor(nn.Module):
         self.unet = unet
         self.in_channels = in_channels
         self.steps_in_itr= steps_in_itr
+        self.activation = nn.Tanh()
         
     def forward(self, input):
         x = input
@@ -50,7 +51,9 @@ class LTM_predictor(nn.Module):
         x_in = x[:,-self.in_channels:,0,:,:]
         # x_in is [bs, in_ch, width, height] dim
 
-        T = self.unet(x_in)
+        Tu = self.unet(x_in)
+        # apply tanh to scale to (-1,1)
+        T = self.activation(Tu)
         # T is [bs, out_ch, width, height] dim
 
         # Time step using transformation matrix
