@@ -20,7 +20,6 @@ from utils import Logger
 from opts import parse_opts
 from loss_funcs import *
 
-
 # trajGRU model
 from collections import OrderedDict
 from models_trajGRU.forecaster import Forecaster
@@ -29,6 +28,7 @@ from models_trajGRU.model import EF
 from models_trajGRU.trajGRU import TrajGRU
 from models_trajGRU.convLSTM import ConvLSTM
 from models_trajGRU.model import activation
+from models_trajGRU.loss import Weighted_mse_mae
 device = torch.device("cuda")
 ACT_TYPE = activation('leaky', negative_slope=0.2, inplace=True)
 
@@ -211,12 +211,8 @@ if __name__ == '__main__':
         
         if opt.loss_function == 'MSE':
             loss_fn = torch.nn.MSELoss()
-        elif opt.loss_function == 'WeightedMSE':
-            loss_fn = weighted_MSE_loss
-        elif opt.loss_function == 'MaxMSE':
-            loss_fn = max_MSE_loss(opt.loss_weights)
-        elif opt.loss_function == 'MultiMSE':
-            loss_fn = multi_MSE_loss(opt.loss_weights)
+        elif opt.loss_function == 'Weighted_MSE_MAE':
+            loss_fn = Weighted_mse_mae(LAMBDA=0.01).to(device)
 
         # Type of optimizers adam/rmsprop
         if opt.optimizer == 'adam':
