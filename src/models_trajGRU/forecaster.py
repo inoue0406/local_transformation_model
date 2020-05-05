@@ -29,6 +29,7 @@ class Forecaster(nn.Module):
         input = self.forward_by_stage(None, hidden_states[-1], getattr(self, 'stage3'),
                                       getattr(self, 'rnn3'))
         for i in list(range(1, self.blocks))[::-1]:
+            #print("forecaster at block:",i)
             input = self.forward_by_stage(input, hidden_states[i-1], getattr(self, 'stage' + str(i)),
                                                        getattr(self, 'rnn' + str(i)))
         return input

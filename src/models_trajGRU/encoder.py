@@ -31,6 +31,7 @@ class Encoder(nn.Module):
         hidden_states = []
         logging.debug(input.size())
         for i in range(1, self.blocks+1):
+            #print("encoder at block:",i)
             input, state_stage = self.forward_by_stage(input, getattr(self, 'stage'+str(i)), getattr(self, 'rnn'+str(i)))
             hidden_states.append(state_stage)
         return tuple(hidden_states)

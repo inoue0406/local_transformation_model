@@ -28,8 +28,9 @@ from models_trajGRU.encoder import Encoder
 from models_trajGRU.model import EF
 from models_trajGRU.trajGRU import TrajGRU
 from models_trajGRU.convLSTM import ConvLSTM
+from models_trajGRU.model import activation
 device = torch.device("cuda")
-
+ACT_TYPE = activation('leaky', negative_slope=0.2, inplace=True)
 
 def count_parameters(model,f):
     for name,p in model.named_parameters():
@@ -60,7 +61,7 @@ if __name__ == '__main__':
 
 
     # model structure
-    # build model
+    # build model for convlstm
     # modified for 128x128
     convlstm_encoder_params = [
         [
@@ -99,7 +100,59 @@ if __name__ == '__main__':
                      kernel_size=3, stride=1, padding=1),
         ]
     ]
+    # parameters for trajGRU
+    # build model
+    # 
+    trajgru_encoder_params = [
+        [
+            OrderedDict({'conv1_leaky_1': [1, 8, 7, 3, 1]}),
+            OrderedDict({'conv2_leaky_1': [64, 192, 5, 3, 1]}),
+            OrderedDict({'conv3_leaky_1': [192, 192, 3, 2, 1]}),
+        ],
+        
+        [
+            TrajGRU(input_channel=8, num_filter=64, b_h_w=(opt.batch_size, 42, 42), zoneout=0.0, L=13,
+                    i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
+                    h2h_kernel=(5, 5), h2h_dilate=(1, 1),
+                    act_type=ACT_TYPE),
+            
+            TrajGRU(input_channel=192, num_filter=192, b_h_w=(opt.batch_size, 14, 14), zoneout=0.0, L=13,
+                    i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
+                    h2h_kernel=(5, 5), h2h_dilate=(1, 1),
+                    act_type=ACT_TYPE),
+            TrajGRU(input_channel=192, num_filter=192, b_h_w=(opt.batch_size, 7, 7), zoneout=0.0, L=9,
+                    i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
+                    h2h_kernel=(3, 3), h2h_dilate=(1, 1),
+                    act_type=ACT_TYPE)
+        ]
+    ]
+    trajgru_forecaster_params = [
+        [
+            OrderedDict({'deconv1_leaky_1': [192, 192, 4, 2, 1]}),
+            OrderedDict({'deconv2_leaky_1': [192, 64, 5, 3, 1]}),
+            OrderedDict({
+                'deconv3_leaky_1': [64, 8, 7, 3, 1],
+                'conv3_leaky_2': [8, 8, 3, 1, 1],
+                'conv3_3': [8, 1, 1, 1, 0]
+            }),
+        ],
 
+        [
+            TrajGRU(input_channel=192, num_filter=192, b_h_w=(opt.batch_size, 7, 7), zoneout=0.0, L=13,
+                    i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
+                    h2h_kernel=(3, 3), h2h_dilate=(1, 1),
+                    act_type=ACT_TYPE),
+
+            TrajGRU(input_channel=192, num_filter=192, b_h_w=(opt.batch_size, 14, 14), zoneout=0.0, L=13,
+                    i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
+                    h2h_kernel=(5, 5), h2h_dilate=(1, 1),
+                    act_type=ACT_TYPE),
+            TrajGRU(input_channel=64, num_filter=64, b_h_w=(opt.batch_size, 42, 42), zoneout=0.0, L=9,
+                    i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
+                    h2h_kernel=(5, 5), h2h_dilate=(1, 1),
+                    act_type=ACT_TYPE)
+        ]
+    ]
 
     # prepare scaler for data
     if opt.data_scaling == 'linear':
@@ -139,18 +192,21 @@ if __name__ == '__main__':
             # convolutional lstm
             encoder = Encoder(convlstm_encoder_params[0], convlstm_encoder_params[1]).to(device)
             forecaster = Forecaster(convlstm_forecaster_params[0], convlstm_forecaster_params[1]).to(device)
-            convlstm = EF(encoder, forecaster).to(device)
-        elif opt.model_name == 'clstm_upper':
-            pass
+            model = EF(encoder, forecaster).to(device)
+        elif opt.model_name == 'trajgru':
+            # trajGRU model
+            encoder = Encoder(trajgru_encoder_params[0], trajgru_encoder_params[1]).to(device)
+            forecaster = Forecaster(trajgru_forecaster_params[0], trajgru_forecaster_params[1]).to(device)
+            model = EF(encoder, forecaster).to(device)
     
         if opt.transfer_path != 'None':
             # Use pretrained weights for transfer learning
             print('loading pretrained model:',opt.transfer_path)
-            convlstm = torch.load(opt.transfer_path)
+            model = torch.load(opt.transfer_path)
 
         modelinfo.write('Model Structure \n')
-        modelinfo.write(str(convlstm))
-        count_parameters(convlstm,modelinfo)
+        modelinfo.write(str(model))
+        count_parameters(model,modelinfo)
         modelinfo.close()
         
         if opt.loss_function == 'MSE':
@@ -164,9 +220,9 @@ if __name__ == '__main__':
 
         # Type of optimizers adam/rmsprop
         if opt.optimizer == 'adam':
-            optimizer = torch.optim.Adam(convlstm.parameters(), lr=opt.learning_rate)
+            optimizer = torch.optim.Adam(model.parameters(), lr=opt.learning_rate)
         elif opt.optimizer == 'rmsprop':
-            optimizer = torch.optim.RMSprop(convlstm.parameters(), lr=opt.learning_rate)
+            optimizer = torch.optim.RMSprop(model.parameters(), lr=opt.learning_rate)
             
         # learning rate scheduler
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=opt.lr_decay)
@@ -187,25 +243,25 @@ if __name__ == '__main__':
             # step scheduler
             scheduler.step()
             # training & validation
-            train_epoch(epoch,opt.n_epochs,train_loader,convlstm,loss_fn,optimizer,
+            train_epoch(epoch,opt.n_epochs,train_loader,model,loss_fn,optimizer,
                         train_logger,train_batch_logger,opt,scl)
-            #valid_epoch(epoch,opt.n_epochs,valid_loader,convlstm,loss_fn,
+            #valid_epoch(epoch,opt.n_epochs,valid_loader,model,loss_fn,
             #            valid_logger,opt,scl)
 
             if epoch % opt.checkpoint == 0:
                 # save the trained model for every checkpoint
                 # (1) as binary 
-                torch.save(convlstm,os.path.join(opt.result_path,
+                torch.save(model,os.path.join(opt.result_path,
                                                  'trained_CLSTM_epoch%03d.model' % epoch))
                 # (2) as state dictionary
-                torch.save(convlstm.state_dict(),
+                torch.save(model.state_dict(),
                            os.path.join(opt.result_path,
                                         'trained_CLSTM_epoch%03d.dict' % epoch))
         # save the trained model
         # (1) as binary 
-        torch.save(convlstm,os.path.join(opt.result_path, 'trained_CLSTM.model'))
+        torch.save(model,os.path.join(opt.result_path, 'trained_CLSTM.model'))
         # (2) as state dictionary
-        torch.save(convlstm.state_dict(),
+        torch.save(model.state_dict(),
                    os.path.join(opt.result_path, 'trained_CLSTM.dict'))
 
     # test datasets if specified
@@ -214,7 +270,7 @@ if __name__ == '__main__':
             #load pretrained model from results directory
             model_fname = os.path.join(opt.result_path, 'trained_CLSTM.model')
             print('loading pretrained model:',model_fname)
-            convlstm = torch.load(model_fname)
+            model = torch.load(model_fname)
             loss_fn = torch.nn.MSELoss()
             
         # prepare loader
@@ -232,7 +288,7 @@ if __name__ == '__main__':
         
         # testing for the trained model
         for threshold in opt.eval_threshold:
-            test_CLSTM_EP(test_loader,convlstm,loss_fn,opt,scl,threshold)
+            test_CLSTM_EP(test_loader,model,loss_fn,opt,scl,threshold)
 
     # output elapsed time
     logfile.write('End time: '+time.ctime()+'\n')
