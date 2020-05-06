@@ -16,6 +16,11 @@ def parse_opts():
         type=str,
         help='scaling of data: linear / root / root_int / log')
     parser.add_argument(
+        '--image_size',
+        default=128,
+        type=int,
+        help='size of an image height and width')
+    parser.add_argument(
         '--train_path',
         type=str,
         help='training filelist(csv) path')
