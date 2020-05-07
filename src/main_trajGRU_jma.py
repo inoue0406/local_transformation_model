@@ -268,6 +268,12 @@ if __name__ == '__main__':
             loss_fn = torch.nn.MSELoss()
         elif opt.loss_function == 'Weighted_MSE_MAE':
             loss_fn = Weighted_mse_mae(LAMBDA=0.01).to(device)
+        elif opt.loss_function == 'WeightedMSE':
+            loss_fn = weighted_MSE_loss
+        elif opt.loss_function == 'MaxMSE':
+            loss_fn = max_MSE_loss(opt.loss_weights)
+        elif opt.loss_function == 'MultiMSE':
+            loss_fn = multi_MSE_loss(opt.loss_weights)
 
         # Type of optimizers adam/rmsprop
         if opt.optimizer == 'adam':
@@ -323,14 +329,16 @@ if __name__ == '__main__':
             print('loading pretrained model:',model_fname)
             model = torch.load(model_fname)
             loss_fn = torch.nn.MSELoss()
-            
+
+        # smaller batch size is used, since trajGRU is heavy on memory
+        batch_size_test = 4
         # prepare loader
         test_dataset = JMARadarDataset(root_dir=opt.valid_data_path,
                                         csv_file=opt.test_path,
                                         tdim_use=opt.tdim_use,
                                         transform=None)
         test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
-                                                   batch_size=opt.batch_size,
+                                                   batch_size=batch_size_test,
                                                    num_workers=4,
                                                    drop_last=True,
                                                    shuffle=False)

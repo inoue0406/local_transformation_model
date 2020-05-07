@@ -155,7 +155,7 @@ def plot_comp_prediction(data_path,filelist,model_fname,batch_size,tdim_use,
         
 if __name__ == '__main__':
     # params
-    batch_size = 10
+    batch_size = 4
     tdim_use = 12
 
     # read case name from command line
@@ -170,7 +170,8 @@ if __name__ == '__main__':
     #case = 'result_20190712_tr_clstm_flatsampled'
     #case = 'result_20190625_clstm_lrdecay07_ep20'
 
-    data_path = '../data/data_kanto_resize/'
+    #data_path = '../data/data_kanto_resize/'
+    data_path = '../data/data_kanto/'
     filelist = '../data/valid_simple_JMARadar.csv'
     model_fname = case + '/trained_CLSTM.model'
     pic_path = case + '/png/'
