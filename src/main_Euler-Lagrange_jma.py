@@ -81,10 +81,10 @@ if __name__ == '__main__':
                                                    drop_last=True,
                                                    shuffle=False)
 
-        if opt.model_name == 'euler-lagrange':
+        if opt.model_name == 'euler-lagrange-const':
             # euler lagrange 
-            from models.euler_lagrange_predictor import *
-            model = Euler_Lagrange_Predictor(input_channels=1, hidden_channels=opt.hidden_channels,
+            from models.euler_lagrange_const_predictor import *
+            model = Euler_Lagrange_Const_Predictor(input_channels=1, hidden_channels=opt.hidden_channels,
                                 kernel_size=opt.kernel_size).cuda()
     
         if opt.transfer_path != 'None':
