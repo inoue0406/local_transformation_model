@@ -10,3 +10,4 @@ run/result*
 run/old*
 src_post/log*
 src_prep/log*
+src/rev_trilinear/build/
