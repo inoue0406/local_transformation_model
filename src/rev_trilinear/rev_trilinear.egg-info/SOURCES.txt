@@ -1,8 +1,0 @@
-backward.cu
-forward.cu
-rev_trilinear.cpp
-setup.py
-rev_trilinear.egg-info/PKG-INFO
-rev_trilinear.egg-info/SOURCES.txt
-rev_trilinear.egg-info/dependency_links.txt
-rev_trilinear.egg-info/top_level.txt
