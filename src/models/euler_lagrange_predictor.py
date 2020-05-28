@@ -4,7 +4,18 @@
 
 import torch
 import torch.nn as nn
-from torch.autograd import Variable
+#from torch.autograd import Variable
+
+import numpy as np
+
+# -----------------------------
+# add "src" as import path
+#path = os.path.join('/home/tsuyoshi/local_transformation_model/src/src_rev_bilinear/')
+#sys.path.append(path)
+
+#import models.convolution_lstm_mod
+import rev_bilinear
+from src_rev_bilinear.rev_bilinear_interp import RevBilinear
 
 class ConvLSTMCell(nn.Module):
     def __init__(self, input_channels, hidden_channels, kernel_size):
@@ -41,14 +52,14 @@ class ConvLSTMCell(nn.Module):
 
     def init_hidden(self, batch_size, hidden, shape):
         if self.Wci is None:
-            self.Wci = Variable(torch.zeros(1, hidden, shape[0], shape[1])).cuda()
-            self.Wcf = Variable(torch.zeros(1, hidden, shape[0], shape[1])).cuda()
-            self.Wco = Variable(torch.zeros(1, hidden, shape[0], shape[1])).cuda()
+            self.Wci = torch.zeros(1, hidden, shape[0], shape[1],requires_grad=True).cuda()
+            self.Wcf = torch.zeros(1, hidden, shape[0], shape[1],requires_grad=True).cuda()
+            self.Wco = torch.zeros(1, hidden, shape[0], shape[1],requires_grad=True).cuda()
         else:
             assert shape[0] == self.Wci.size()[2], 'Input Height Mismatched!'
             assert shape[1] == self.Wci.size()[3], 'Input Width Mismatched!'
-        return (Variable(torch.zeros(batch_size, hidden, shape[0], shape[1])).cuda(),
-                Variable(torch.zeros(batch_size, hidden, shape[0], shape[1])).cuda())
+        return (torch.zeros(batch_size, hidden, shape[0], shape[1],requires_grad=True).cuda(),
+                torch.zeros(batch_size, hidden, shape[0], shape[1],requires_grad=True).cuda())
 
 def xy_grid(bsize,height,width):
     # generate constant xy grid
@@ -65,29 +76,34 @@ def xy_grid(bsize,height,width):
     
     return Xgrid,Ygrid
 
-# input: B, C, H, W
-# flow: [B, 2, H, W]
-device = torch.device("cuda")
-def warp(input, flow):
-    B, C, H, W = input.size()
-    # mesh grid
-    xx = torch.arange(0, W).view(1, -1).repeat(H, 1).to(device)
-    yy = torch.arange(0, H).view(-1, 1).repeat(1, W).to(device)
-    xx = xx.view(1, 1, H, W).repeat(B, 1, 1, 1)
-    yy = yy.view(1, 1, H, W).repeat(B, 1, 1, 1)
-    grid = torch.cat((xx, yy), 1).float()
-    vgrid = grid + flow
+def grid_to_pc(Rgrd,XY_pc):
+    # convert grid to pc
+    # Rgrd: grid value with [batch,channels,height,width] dim
+    # XY_pc: point cloud position with [batch,2,N] dim
+    #        scaled to [0,1]
+    B, C, N = XY_pc.size()
+    input = Rgrd
+    L = int(np.sqrt(N)) # note that sqrt(N) should be an integer
+    vgrid = XY_pc.permute(0, 2, 1).reshape(B, L, L, 2).cuda()
+    # rescale grid to [-1,1]
+    vgrid = (vgrid - 0.5) * 2.0
+    R_pc = torch.nn.functional.grid_sample(input, vgrid)
+    R_pc = R_pc.reshape(B, 2, N)
+    return R_pc
 
-    # scale grid to [-1,1] for input to grid_sample
-    vgrid[:, 0, :, :] = 2.0 * vgrid[:, 0, :, :].clone() / max(W - 1, 1) - 1.0
-    vgrid[:, 1, :, :] = 2.0 * vgrid[:, 1, :, :].clone() / max(H - 1, 1) - 1.0
-    vgrid = vgrid.permute(0, 2, 3, 1)
-    output = torch.nn.functional.grid_sample(input, vgrid)
-    return output
+def pc_to_grid(R_pc,XY_pc,height):
+    # convert pc to grid
+    # R_pc: point cloud value with [batch,channels,N] dim
+    # XY_pc: point cloud position with [batch,2,N] dim
+    #        scaled to [0,1]
+    
+    # apply interpolation
+    Rgrd = RevBilinear.apply(XY_pc, R_pc, height)
+    return Rgrd
 
 class Euler_Lagrange_Predictor(nn.Module):
     # Encoder-Predictor using Eulerian Lagrangian approach
-    def __init__(self, input_channels, hidden_channels, kernel_size):
+    def __init__(self, input_channels, hidden_channels, kernel_size, image_size, batch_size):
         # input_channels (scalar) 
         # hidden_channels (scalar) 
         super(Euler_Lagrange_Predictor, self).__init__()
@@ -107,7 +123,7 @@ class Euler_Lagrange_Predictor(nn.Module):
         # convolution for obtaining (U,V)
         self.uvconv = nn.Conv2d(self.hidden_channels, 2, self.kernel_size, 1, self.padding, bias=True)
         # grid
-        self.Xgrid,self.Ygrid = xy_grid(10,128,128)
+        self.Xgrid,self.Ygrid = xy_grid(batch_size,image_size,image_size)
         
     def forward(self, input):
         x = input
@@ -115,53 +131,41 @@ class Euler_Lagrange_Predictor(nn.Module):
         # initialize internal state
         (he, ce) = self.encoder.init_hidden(batch_size=bsize, hidden=self.hidden_channels, shape=(height, width))
         (hp, cp) = self.predictor.init_hidden(batch_size=bsize, hidden=self.hidden_channels, shape=(height, width))
-        # initialize gridded vector field
-        UV = Variable(torch.zeros(bsize, 2, height, width)).cuda()
-        Ugrd = Variable(torch.zeros(bsize, 1, height, width)).cuda()
-        Vgrd = Variable(torch.zeros(bsize, 1, height, width)).cuda()
         # encoding
         for it in range(tsize):
             # forward
             (he, ce) = self.encoder(x[:,it,:,:,:], he, ce)
-        # calc velocity field from hidden layer
-        UV = self.uvconv(he)
-        # UV has [batch, 2, height width] dimension
-        # Ugrd = UV[:,0,:,:]
-        # Vgrd = UV[:,1,:,:]        
+        # copy internal state to predictor
+        hp = he
+        cp = ce
         # Lagrangian prediction
         Rgrd = x[:,-1,:,:,:] #use initial
 
-        xout = Variable(torch.zeros(bsize, tsize, channels, height, width)).cuda()
-        for it in range(tsize):
-            warped = warp(Rgrd, (it+1)*UV)
-            xout[:,it,:,:,:] = warped
-        # initialize point variables field
-#        Rp = Variable(torch.zeros(bsize, height*width)).cuda()
-#        Xp = Variable(torch.zeros(bsize, height*width)).cuda()
-#        Yp = Variable(torch.zeros(bsize, height*width)).cuda()
-#        Up = Variable(torch.zeros(bsize, height*width)).cuda()
-#        Vp = Variable(torch.zeros(bsize, height*width)).cuda()
-#        # 
-#        Rp = torch.reshape(Rgrd,(bsize, height*width))
-#        Xp = torch.reshape(self.Xgrid,(bsize, height*width)).cuda()
-#        Yp = torch.reshape(self.Ygrid,(bsize, height*width)).cuda()
-#        Up = torch.reshape(Ugrd,(bsize, height*width))
-#        Vp = torch.reshape(Vgrd,(bsize, height*width))
-#
-#        for it in range(tsize):
-#            # time progress for lagrangian point
-#            Xp = Xp + Up/width
-#            Yp = Yp + Vp/height
-#            Rp = Rp
-#            # back to Eulerian grid
+        # Set Initial PC
+        X_pc = self.Xgrid.reshape(bsize,1,height*width)
+        Y_pc = self.Ygrid.reshape(bsize,1,height*width)
+        XY_pc = torch.cat([X_pc,Y_pc],dim=1).cuda()
+        R_pc = Rgrd.reshape(bsize,1,height*width)
 
-#        copy internal state to predictor
-#        hp = he
-#        cp = ce
-#        # predictor
-#        xzero = Variable(torch.zeros(bsize, channels, height, width)).cuda() # ! should I put zero here?
-#        for it in range(tsize):
-#            (hp, cp) = self.predictor(xzero, hp, cp)
-#            xout[:,it,:,:,:] = self.lastconv(hp)
+        xout = torch.zeros(bsize, tsize, channels, height, width,  requires_grad=True).cuda()
+        #xout_prev = Rgrd
+        
+        for it in range(tsize):
+            (hp, cp) = self.predictor(Rgrd, hp, cp) # input previous timestep's xout
+            # calc velocity field from hidden layer
+            UV_grd = self.uvconv(hp)
+            # UV has [batch, 2, height width] dimension
+            #xout_prev = xout[:,it,:,:,:].clone()
+            
+            # Interpolate UV to Point Cloud position
+            UV_pc = grid_to_pc(UV_grd,XY_pc)
+            # Calc Time Progress
+            XY_pc = XY_pc + UV_pc
+            XY_pc = torch.clamp(XY_pc,min=0.0,max=1.0) # XY should be in [0,1]
+            # Interpolate PC to Grid
+            Rgrd = pc_to_grid(R_pc,XY_pc,height)
+
+            xout[:,it,:,:,:] = Rgrd
+
         return xout
 

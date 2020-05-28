@@ -30,8 +30,7 @@ class RevBilinear(torch.autograd.Function):
         if ctx.needs_input_grad[0]:
             grad_pc = rev_bilinear.cal_pc_grad(grad_grid_value, grid_value, pc, weight_sum, pc_value, pc_grid_index, ctx.grid_size)
             torch.cuda.synchronize()
-            
-        import pdb;pdb.set_trace()        
+        #import pdb;pdb.set_trace()
 
         return grad_pc, grad_pc_value, None
 

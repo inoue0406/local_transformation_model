@@ -82,11 +82,15 @@ if __name__ == '__main__':
                                                    shuffle=False)
 
         if opt.model_name == 'euler-lagrange-const':
-            # euler lagrange 
+            # euler lagrange const
             from models.euler_lagrange_const_predictor import *
             model = Euler_Lagrange_Const_Predictor(input_channels=1, hidden_channels=opt.hidden_channels,
                                 kernel_size=opt.kernel_size).cuda()
-    
+        if opt.model_name == 'euler-lagrange':
+            # euler lagrange 
+            from models.euler_lagrange_predictor import *
+            model = Euler_Lagrange_Predictor(input_channels=1, hidden_channels=opt.hidden_channels,
+                                             kernel_size=opt.kernel_size,image_size=opt.image_size,batch_size=opt.batch_size).cuda()
         if opt.transfer_path != 'None':
             # Use pretrained weights for transfer learning
             print('loading pretrained model:',opt.transfer_path)
@@ -140,23 +144,23 @@ if __name__ == '__main__':
                 # save the trained model for every checkpoint
                 # (1) as binary 
                 torch.save(model,os.path.join(opt.result_path,
-                                                 'trained_CLSTM_epoch%03d.model' % epoch))
+                                                 'trained_epoch%03d.model' % epoch))
                 # (2) as state dictionary
                 torch.save(model.state_dict(),
                            os.path.join(opt.result_path,
-                                        'trained_CLSTM_epoch%03d.dict' % epoch))
+                                        'trained_epoch%03d.dict' % epoch))
         # save the trained model
         # (1) as binary 
-        torch.save(model,os.path.join(opt.result_path, 'trained_CLSTM.model'))
+        torch.save(model,os.path.join(opt.result_path, 'trained.model'))
         # (2) as state dictionary
         torch.save(model.state_dict(),
-                   os.path.join(opt.result_path, 'trained_CLSTM.dict'))
+                   os.path.join(opt.result_path, 'trained.dict'))
 
     # test datasets if specified
     if opt.test:
         if opt.no_train:
             #load pretrained model from results directory
-            model_fname = os.path.join(opt.result_path, 'trained_CLSTM.model')
+            model_fname = os.path.join(opt.result_path, 'trained.model')
             print('loading pretrained model:',model_fname)
             model = torch.load(model_fname)
             loss_fn = torch.nn.MSELoss()

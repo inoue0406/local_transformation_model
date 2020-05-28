@@ -51,12 +51,12 @@ def plot_comp_prediction(data_path,filelist,model_fname,batch_size,tdim_use,
                                                batch_size=batch_size,
                                                shuffle=False)
     # load the saved model
-    convlstm = torch.load(model_fname)
-    #convlstm = CLSTM_EP(input_channels=1, hidden_channels=12,
+    model = torch.load(model_fname)
+    #model = CLSTM_EP(input_channels=1, hidden_channels=12,
     #                    kernel_size=3).cuda()
-    #convlstm.load_state_dict(torch.load(model_fname))
+    #model.load_state_dict(torch.load(model_fname))
     # evaluation mode
-    convlstm.eval()
+    model.eval()
     #
     for i_batch, sample_batched in enumerate(valid_loader):
         fnames = sample_batched['fnames_future']
@@ -69,7 +69,7 @@ def plot_comp_prediction(data_path,filelist,model_fname,batch_size,tdim_use,
         target = Variable(scl.fwd(sample_batched['future'])).cuda()
         #input = Variable(sample_batched['past']).cpu()
         #target = Variable(sample_batched['future']).cpu()
-        output = convlstm(input)
+        output = model(input)
         
         # Output only selected data in df_sampled
         for n,fname in enumerate(fnames):
@@ -159,13 +159,11 @@ if __name__ == '__main__':
         quit()
 
     case = argvs[1]
-    #case = 'result_20190712_tr_clstm_flatsampled'
-    #case = 'result_20190625_clstm_lrdecay07_ep20'
 
     #data_path = '../data/data_kanto/'
     data_path = '../data/data_kanto_resize/'
     filelist = '../data/valid_simple_JMARadar.csv'
-    model_fname = case + '/trained_CLSTM.model'
+    model_fname = case + '/trained.model'
     pic_path = case + '/png/'
 
     data_scaling = 'linear'
