@@ -27,12 +27,12 @@ __global__ void cal_pc_grad_kernel(
   float x0=cell_x0*dx, x1=cell_x1*dx, y0=cell_y0*dx, y1=cell_y1*dx;
   if(x0<x && x1>x && y0<y && y1>y){
     int cell_x=cell_x0, cell_y=cell_y0;
-    float w1=(x1-x)*(y1-y);
+    float w1=-(y1-y),w2=-(x1-x);
     switch(blockIdx.y){
-    case 0: {cell_x=cell_x0; cell_y=cell_y0; w1=(x1-x)*(y1-y); break;}
-    case 1: {cell_x=cell_x0; cell_y=cell_y1; w1=(x1-x)*(y-y0); break;}
-    case 2: {cell_x=cell_x1; cell_y=cell_y0; w1=(x-x0)*(y1-y); break;}
-    case 3: {cell_x=cell_x1; cell_y=cell_y1; w1=(x-x0)*(y-y0); break;}
+    case 0: {cell_x=cell_x0; cell_y=cell_y0; w1=-(y1-y); w2=-(x1-x); break;}
+    case 1: {cell_x=cell_x0; cell_y=cell_y1; w1=-(y-y0); w2= (x1-x); break;}
+    case 2: {cell_x=cell_x1; cell_y=cell_y0; w1= (y1-y); w2=-(x-x0); break;}
+    case 3: {cell_x=cell_x1; cell_y=cell_y1; w1= (y-y0); w2= (x-x0); break;}
     default:break;
     }
 
@@ -41,7 +41,8 @@ __global__ void cal_pc_grad_kernel(
       dLdw += grad_grid_value[threadIdx.x][channel_i][cell_x][cell_y] * (pc_value[threadIdx.x][channel_i][blockIdx.x]-grid_value[threadIdx.x][channel_i][cell_x][cell_y]);
     }
     dLdw /= weight_sum[threadIdx.x][cell_x][cell_y];
-    atomicAdd(&(grad_pc[threadIdx.x][0][blockIdx.x]), dLdw*w1/2.0);
+    atomicAdd(&(grad_pc[threadIdx.x][0][blockIdx.x]), dLdw*w1);
+    atomicAdd(&(grad_pc[threadIdx.x][1][blockIdx.x]), dLdw*w2);
   }
 }
 
