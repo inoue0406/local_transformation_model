@@ -24,11 +24,10 @@ from loss_funcs import *
 from collections import OrderedDict
 from models_trajGRU.forecaster import Forecaster
 from models_trajGRU.encoder import Encoder
-from models_trajGRU.model import EF
 from models_trajGRU.trajGRU import TrajGRU
 from models_trajGRU.convLSTM import ConvLSTM
-from models_trajGRU.model import activation
 from models_trajGRU.loss import Weighted_mse_mae
+from models_trajGRU.model import activation
 device = torch.device("cuda")
 ACT_TYPE = activation('leaky', negative_slope=0.2, inplace=True)
 
@@ -186,7 +185,8 @@ if __name__ == '__main__':
                 OrderedDict({
                     'deconv3_leaky_1': [64, 8, 7, 3, 1],
                     'conv3_leaky_2': [8, 8, 3, 1, 1],
-                    'conv3_3': [8, 1, 1, 1, 0]
+#                    'conv3_3': [8, 1, 1, 1, 0]
+                    'conv3_3': [8, 2, 1, 1, 0]
                 }),
             ],
         
@@ -250,9 +250,16 @@ if __name__ == '__main__':
             model = EF(encoder, forecaster).to(device)
         elif opt.model_name == 'trajgru':
             # trajGRU model
+            from models_trajGRU.model import EF
             encoder = Encoder(trajgru_encoder_params[0], trajgru_encoder_params[1]).to(device)
             forecaster = Forecaster(trajgru_forecaster_params[0], trajgru_forecaster_params[1]).to(device)
             model = EF(encoder, forecaster).to(device)
+        elif opt.model_name == 'trajgru_el':
+            # trajGRU Euler-Lagrange Model
+            from models_trajGRU.model_euler_lagrange import EF_el
+            encoder = Encoder(trajgru_encoder_params[0], trajgru_encoder_params[1]).to(device)
+            forecaster = Forecaster(trajgru_forecaster_params[0], trajgru_forecaster_params[1]).to(device)
+            model = EF_el(encoder, forecaster, opt.image_size, opt.batch_size).to(device)
     
         if opt.transfer_path != 'None':
             # Use pretrained weights for transfer learning

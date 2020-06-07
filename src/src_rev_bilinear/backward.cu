@@ -25,7 +25,7 @@ __global__ void cal_pc_grad_kernel(
   int cell_x0 = pc_grid_index[threadIdx.x][0][blockIdx.x], cell_x1 = pc_grid_index[threadIdx.x][1][blockIdx.x];
   int cell_y0 = pc_grid_index[threadIdx.x][2][blockIdx.x], cell_y1 = pc_grid_index[threadIdx.x][3][blockIdx.x];
   float x0=cell_x0*dx, x1=cell_x1*dx, y0=cell_y0*dx, y1=cell_y1*dx;
-  if(x0<x && x1>x && y0<y && y1>y){
+  if(x0<=x && x1>x && y0<=y && y1>y){
     int cell_x=cell_x0, cell_y=cell_y0;
     float w1=-(y1-y),w2=-(x1-x);
     switch(blockIdx.y){
@@ -93,7 +93,7 @@ __global__ void cal_pc_value_grad_kernel(
   int cell_x0 = pc_grid_index[threadIdx.x][0][blockIdx.x], cell_x1 = pc_grid_index[threadIdx.x][1][blockIdx.x];
   int cell_y0 = pc_grid_index[threadIdx.x][2][blockIdx.x], cell_y1 = pc_grid_index[threadIdx.x][3][blockIdx.x];
   float x0=cell_x0*dx, x1=cell_x1*dx, y0=cell_y0*dx, y1=cell_y1*dx;
-  if(x0<x && x1>x && y0<y && y1>y){
+  if(x0<=x && x1>x && y0<=y && y1>y){
 
     float w00=(x1-x) * (y1-y)/ weight_sum[threadIdx.x][cell_x0][cell_y0];
     float w01=(x1-x) * (y-y0)/ weight_sum[threadIdx.x][cell_x0][cell_y1];

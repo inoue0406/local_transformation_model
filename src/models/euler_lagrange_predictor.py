@@ -103,7 +103,7 @@ def pc_to_grid(R_pc,XY_pc,height):
 
 class Euler_Lagrange_Predictor(nn.Module):
     # Encoder-Predictor using Eulerian Lagrangian approach
-    def __init__(self, input_channels, hidden_channels, kernel_size, image_size, batch_size):
+    def __init__(self, input_channels, hidden_channels, kernel_size, image_size, batch_size, mode="run"):
         # input_channels (scalar) 
         # hidden_channels (scalar) 
         super(Euler_Lagrange_Predictor, self).__init__()
@@ -124,6 +124,9 @@ class Euler_Lagrange_Predictor(nn.Module):
         self.uvconv = nn.Conv2d(self.hidden_channels, 2, self.kernel_size, 1, self.padding, bias=True)
         # grid
         self.Xgrid,self.Ygrid = xy_grid(batch_size,image_size,image_size)
+        # mode = "run": only return tensor for loss
+        #      = "check" : return tensor and other variables for checking
+        self.mode = mode
         
     def forward(self, input):
         x = input
@@ -148,14 +151,17 @@ class Euler_Lagrange_Predictor(nn.Module):
         R_pc = Rgrd.reshape(bsize,1,height*width)
 
         xout = torch.zeros(bsize, tsize, channels, height, width,  requires_grad=True).cuda()
-        #xout_prev = Rgrd
+        if self.mode == "check":
+            uvout = torch.zeros(bsize, tsize, 2, height, width).cuda()
+            r_pc_out = torch.zeros(bsize, tsize, channels, height*width).cuda()
+            xy_pc_out = torch.zeros(bsize, tsize, 2, height*width).cuda()
+        xzero = torch.zeros(bsize, channels, height, width,  requires_grad=True).cuda() # ! should I put zero here?
         
         for it in range(tsize):
-            (hp, cp) = self.predictor(Rgrd, hp, cp) # input previous timestep's xout
+            (hp, cp) = self.predictor(xzero, hp, cp)
             # calc velocity field from hidden layer
             UV_grd = self.uvconv(hp)
             # UV has [batch, 2, height width] dimension
-            #xout_prev = xout[:,it,:,:,:].clone()
             
             # Interpolate UV to Point Cloud position
             UV_pc = grid_to_pc(UV_grd,XY_pc)
@@ -166,6 +172,14 @@ class Euler_Lagrange_Predictor(nn.Module):
             Rgrd = pc_to_grid(R_pc,XY_pc,height)
 
             xout[:,it,:,:,:] = Rgrd
+            if self.mode == "check":
+                uvout[:,it,:,:,:] = UV_grd
+                r_pc_out[:,it,:,:] = R_pc
+                xy_pc_out[:,it,:,:] = XY_pc
 
-        return xout
+        if self.mode == "run":
+            return xout
+        elif self.mode == "check":
+            return xout,uvout,r_pc_out,xy_pc_out
+        
 
