@@ -111,7 +111,7 @@ class EF_el(nn.Module):
             UV_pc = grid_to_pc(UV_grd[:,it,:,:,:],XY_pc)
             print('max_uv',torch.max(UV_pc),'min_uv',torch.min(UV_pc))
             # Calc Time Progress
-            XY_pc = XY_pc + UV_pc
+            XY_pc = XY_pc + UV_pc*10.0
             XY_pc = torch.clamp(XY_pc,min=0.0,max=1.0) # XY should be in [0,1]
             # Interpolate PC to Grid
             Rgrd = pc_to_grid(R_pc,XY_pc,height)
