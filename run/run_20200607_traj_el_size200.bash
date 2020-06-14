@@ -4,7 +4,7 @@ case="result_20200607_traj_el_size200"
 
 # running script for Rainfall Prediction with ConvLSTM
 python ../src/main_trajGRU_jma.py --model_name trajgru_el \
-       --data_path ../data/data_kanto/ --image_size 200\
+       --data_path ../data/data_kanto/ --image_size 200 \
        --valid_data_path ../data/data_kanto/ \
        --train_path ../data/train_simple_JMARadar.csv \
        --valid_path ../data/valid_simple_JMARadar.csv \

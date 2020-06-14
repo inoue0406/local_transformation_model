@@ -13,7 +13,6 @@ import time
 
 import pdb
 
-from jma_pytorch_dataset import *
 from scaler import *
 from train_valid_epoch import *
 from utils import Logger
@@ -221,15 +220,30 @@ if __name__ == '__main__':
         
     if not opt.no_train:
         # loading datasets
-        train_dataset = JMARadarDataset(root_dir=opt.data_path,
-                                        csv_file=opt.train_path,
-                                        tdim_use=opt.tdim_use,
-                                        transform=None)
-    
-        valid_dataset = JMARadarDataset(root_dir=opt.valid_data_path,
-                                        csv_file=opt.valid_path,
-                                        tdim_use=opt.tdim_use,
-                                        transform=None)
+        if opt.dataset == 'radarJMA':
+            from jma_pytorch_dataset import *
+            train_dataset = JMARadarDataset(root_dir=opt.data_path,
+                                            csv_file=opt.train_path,
+                                            tdim_use=opt.tdim_use,
+                                            transform=None)
+            
+            valid_dataset = JMARadarDataset(root_dir=opt.valid_data_path,
+                                            csv_file=opt.valid_path,
+                                            tdim_use=opt.tdim_use,
+                                            transform=None)
+        elif opt.dataset == 'artfield':
+            from artfield_pytorch_dataset import *
+            train_dataset = ArtfieldDataset(root_dir=opt.data_path,
+                                            csv_file=opt.train_path,
+                                            mode=opt.model_mode,
+                                            tdim_use=opt.tdim_use,
+                                            transform=None)
+            
+            valid_dataset = ArtfieldDataset(root_dir=opt.valid_data_path,
+                                            csv_file=opt.valid_path,
+                                            mode=opt.model_mode,
+                                            tdim_use=opt.tdim_use,
+                                            transform=None)
     
         train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
                                                    batch_size=opt.batch_size,
@@ -242,6 +256,8 @@ if __name__ == '__main__':
                                                    num_workers=4,
                                                    drop_last=True,
                                                    shuffle=False)
+        
+        dd = next(iter(train_dataset))
 
         if opt.model_name == 'clstm':
             # convolutional lstm
@@ -259,7 +275,7 @@ if __name__ == '__main__':
             from models_trajGRU.model_euler_lagrange import EF_el
             encoder = Encoder(trajgru_encoder_params[0], trajgru_encoder_params[1]).to(device)
             forecaster = Forecaster(trajgru_forecaster_params[0], trajgru_forecaster_params[1]).to(device)
-            model = EF_el(encoder, forecaster, opt.image_size, opt.batch_size).to(device)
+            model = EF_el(encoder, forecaster, opt.image_size, opt.batch_size, opt.model_mode).to(device)
     
         if opt.transfer_path != 'None':
             # Use pretrained weights for transfer learning

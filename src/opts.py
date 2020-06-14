@@ -3,6 +3,11 @@ import argparse
 def parse_opts():
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        '--dataset',
+        type=str,
+        default='radarJMA',
+        help='name of dataset')
+    parser.add_argument(
         '--data_path',
         type=str,
         help='directory path of data')
@@ -42,6 +47,11 @@ def parse_opts():
         default='clstm',
         type=str,
         help='Model Name: clstm clstm_skip clstm_multi')
+    parser.add_argument(
+        '--model_mode',
+        default='run',
+        type=str,
+        help='Model Mode')
     parser.add_argument(
         '--transfer_path',
         default='None',

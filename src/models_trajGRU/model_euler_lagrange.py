@@ -89,6 +89,10 @@ class EF_el(nn.Module):
         UV_grd =  output.permute((1, 0, 2, 3, 4))
         #return output
 
+        if self.mode=="velocity":
+            # directly return velocity
+            return UV_grd
+
         # Lagrangian prediction
         Rgrd = input[:,-1,:,:,:] #use initial
 
