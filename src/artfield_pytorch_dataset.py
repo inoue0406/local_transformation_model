@@ -37,13 +37,13 @@ class ArtfieldDataset(data.Dataset):
         # read X
         h5_name_all = os.path.join(self.root_dir, self.df_fnames.iloc[index].loc['fname'])
         h5file = h5py.File(h5_name_all,'r')
-        rain_all = h5file['R'][()]
+        rain_all = h5file['R'][()].astype(np.float32)
         rain_all = np.maximum(rain_all,0) # replace negative value with 0
         rain_all = rain_all[:,None,:,:] # add "channel" dimension as 1
         rain_X = rain_all[0:self.tdim_use,:,:,:] # use time 0 to tdim_use as X
         # read Y
         if self.mode == "velocity":
-            vel = h5file['V'][()]
+            vel = h5file['V'][()].astype(np.float32)
             vel = vel[None,:,:,:] # add "time" dimension as 1
             # broadcast along time axis
             _,_,H,W = vel.shape

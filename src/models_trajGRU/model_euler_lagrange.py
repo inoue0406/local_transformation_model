@@ -87,10 +87,12 @@ class EF_el(nn.Module):
         output = self.forecaster(state)
         # calc UV as an output of trajGRU
         UV_grd =  output.permute((1, 0, 2, 3, 4))
+        UV_grd =  (UV_grd - 0.5)*5.0
         #return output
 
         if self.mode=="velocity":
             # directly return velocity
+            print('max_uv',torch.max(UV_grd).cpu().detach().numpy(),'min_uv',torch.min(UV_grd).cpu().detach().numpy())
             return UV_grd
 
         # Lagrangian prediction
@@ -113,7 +115,7 @@ class EF_el(nn.Module):
             # UV has [batch, 2, height width] dimension
             # Interpolate UV to Point Cloud position
             UV_pc = grid_to_pc(UV_grd[:,it,:,:,:],XY_pc)
-            print('max_uv',torch.max(UV_pc),'min_uv',torch.min(UV_pc))
+            print('max_uv',torch.max(UV_pc).cpu().detach().numpy(),'min_uv',torch.min(UV_pc).cpu().detach().numpy())
             # Calc Time Progress
             XY_pc = XY_pc + UV_pc*10.0
             XY_pc = torch.clamp(XY_pc,min=0.0,max=1.0) # XY should be in [0,1]

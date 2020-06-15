@@ -1,10 +1,10 @@
 #!/bin/bash
 
-case="result_20200614_artfield_traj_el_size200"
+case="result_20200615_artfield_value_traj_el_size200"
 
 # running script for Rainfall Prediction with ConvLSTM
 python ../src/main_trajGRU_jma.py --model_name trajgru_el \
-       --dataset artfield --model_mode velocity --data_scaling linear\
+       --dataset artfield --model_mode run --data_scaling linear\
        --data_path ../data/artificial/uniform/ --image_size 200 \
        --valid_data_path ../data/artificial/uniform/ \
        --train_path ../data/artificial_uniform_train.csv \

@@ -209,14 +209,19 @@ if __name__ == '__main__':
         print("UNKNOWN Size !")
 
     # prepare scaler for data
-    if opt.data_scaling == 'linear':
-        scl = LinearScaler()
-    if opt.data_scaling == 'root':
-        scl = RootScaler()
-    if opt.data_scaling == 'root_int':
-        scl = RootIntScaler()
-    elif opt.data_scaling == 'log':
-        scl = LogScaler()
+    if opt.dataset == 'radarJMA':
+        if opt.data_scaling == 'linear':
+            scl = LinearScaler()
+        elif opt.data_scaling == 'root':
+            scl = RootScaler()
+        elif opt.data_scaling == 'root_int':
+            scl = RootIntScaler()
+        elif opt.data_scaling == 'log':
+             scl = LogScaler()
+    elif opt.dataset == 'artfield':
+        if opt.data_scaling == 'linear':
+            # use identity transformation, since the data is already scaled
+            scl = LinearScaler(rmax=1.0)
         
     if not opt.no_train:
         # loading datasets
@@ -247,13 +252,13 @@ if __name__ == '__main__':
     
         train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
                                                    batch_size=opt.batch_size,
-                                                   num_workers=4,
+                                                   num_workers=opt.n_threads,
                                                    drop_last=True,
                                                    shuffle=True)
     
         valid_loader = torch.utils.data.DataLoader(dataset=valid_dataset,
                                                    batch_size=opt.batch_size,
-                                                   num_workers=4,
+                                                   num_workers=opt.n_threads,
                                                    drop_last=True,
                                                    shuffle=False)
         
@@ -362,7 +367,7 @@ if __name__ == '__main__':
                                         transform=None)
         test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
                                                    batch_size=batch_size_test,
-                                                   num_workers=4,
+                                                   num_workers=opt.n_threads,
                                                    drop_last=True,
                                                    shuffle=False)
 
