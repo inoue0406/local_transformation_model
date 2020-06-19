@@ -156,6 +156,9 @@ def generate_rain_field(v,scale,volume,num):
         pic_path="../run/result_20200613_art_field/%s/" % case
         plot_field(out_field,pic_path,case)
         
+    # type
+    out_field = out_field.astype(np.float32)
+    vfield = vfield.astype(np.float32)
     # write
     outfile_root = "../data/artificial/uniform/"
     h5fname = "art_field_%04d.h5" % num

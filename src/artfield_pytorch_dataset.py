@@ -34,6 +34,7 @@ class ArtfieldDataset(data.Dataset):
         return len(self.df_fnames)
         
     def __getitem__(self, index):
+        fnames = self.df_fnames.iloc[index].loc['fname']
         # read X
         h5_name_all = os.path.join(self.root_dir, self.df_fnames.iloc[index].loc['fname'])
         h5file = h5py.File(h5_name_all,'r')
@@ -47,16 +48,18 @@ class ArtfieldDataset(data.Dataset):
             vel = vel[None,:,:,:] # add "time" dimension as 1
             # broadcast along time axis
             _,_,H,W = vel.shape
-            rain_Y = np.zeros((self.tdim_use,2,H,W))
-            rain_Y[:,:,:,:] = vel 
+            UV = np.zeros((self.tdim_use,2,H,W))
+            UV[:,:,:,:] = vel
+            rain_Y = rain_all[self.tdim_use:(self.tdim_use*2),:,:,:] # use time tdim_use as X 
+            sample = {'past': rain_X, 'future': UV, 'future_val':rain_Y,
+                      'fnames':fnames}
         elif self.mode == "run":
             rain_Y = rain_all[self.tdim_use:(self.tdim_use*2),:,:,:] # use time tdim_use as X 
+            sample = {'past': rain_X, 'future': rain_Y,
+                      'fnames':fnames}
         h5file.close()
         
         # save
-        fnames = self.df_fnames.iloc[index].loc['fname']
-        sample = {'past': rain_X, 'future': rain_Y,
-                  'fnames':fnames}
 
         if self.transform:
             sample = self.transform(sample)

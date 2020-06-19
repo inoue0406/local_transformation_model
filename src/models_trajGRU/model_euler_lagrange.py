@@ -64,6 +64,7 @@ def pc_to_grid(R_pc,XY_pc,height):
     
     # apply interpolation
     Rgrd = RevBilinear.apply(XY_pc, R_pc, height)
+    Rgrd = Rgrd.permute(0,1,3,2)
     return Rgrd
 
 class EF_el(nn.Module):
@@ -95,6 +96,10 @@ class EF_el(nn.Module):
             print('max_uv',torch.max(UV_grd).cpu().detach().numpy(),'min_uv',torch.min(UV_grd).cpu().detach().numpy())
             return UV_grd
 
+        # rescale UV to [0-1] grid
+        UV_grd[:,:,1,:,:] = UV_grd[:,:,1,:,:]/height
+        UV_grd[:,:,0,:,:] = UV_grd[:,:,0,:,:]/width
+
         # Lagrangian prediction
         Rgrd = input[:,-1,:,:,:] #use initial
 
@@ -106,7 +111,6 @@ class EF_el(nn.Module):
 
         xout = torch.zeros(bsize, tsize, channels, height, width,  requires_grad=True).cuda()
         if self.mode == "check":
-            uvout = torch.zeros(bsize, tsize, 2, height, width).cuda()
             r_pc_out = torch.zeros(bsize, tsize, channels, height*width).cuda()
             xy_pc_out = torch.zeros(bsize, tsize, 2, height*width).cuda()
         xzero = torch.zeros(bsize, channels, height, width,  requires_grad=True).cuda() # ! should I put zero here?
@@ -117,21 +121,23 @@ class EF_el(nn.Module):
             UV_pc = grid_to_pc(UV_grd[:,it,:,:,:],XY_pc)
             print('max_uv',torch.max(UV_pc).cpu().detach().numpy(),'min_uv',torch.min(UV_pc).cpu().detach().numpy())
             # Calc Time Progress
-            XY_pc = XY_pc + UV_pc*10.0
+            XY_pc = XY_pc + UV_pc
             XY_pc = torch.clamp(XY_pc,min=0.0,max=1.0) # XY should be in [0,1]
             # Interpolate PC to Grid
             Rgrd = pc_to_grid(R_pc,XY_pc,height)
 
             xout[:,it,:,:,:] = Rgrd
             if self.mode == "check":
-                uvout[:,it,:,:,:] = UV_grd
                 r_pc_out[:,it,:,:] = R_pc
                 xy_pc_out[:,it,:,:] = XY_pc
 
         if self.mode == "run":
             return xout
         elif self.mode == "check":
-            return xout,uvout,r_pc_out,xy_pc_out
+            # rescale back UV
+            UV_grd[:,:,1,:,:] = UV_grd[:,:,1,:,:]*height
+            UV_grd[:,:,0,:,:] = UV_grd[:,:,0,:,:]*width
+            return xout,UV_grd,r_pc_out,xy_pc_out
 
 class Predictor(nn.Module):
     def __init__(self, params):
