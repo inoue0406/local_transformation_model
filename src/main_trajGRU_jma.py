@@ -286,6 +286,7 @@ if __name__ == '__main__':
             # Use pretrained weights for transfer learning
             print('loading pretrained model:',opt.transfer_path)
             model = torch.load(opt.transfer_path)
+            model.model_mode = opt.model_mode
 
         modelinfo.write('Model Structure \n')
         modelinfo.write(str(model))
@@ -355,11 +356,18 @@ if __name__ == '__main__':
             #load pretrained model from results directory
             model_fname = os.path.join(opt.result_path, 'trained_CLSTM.model')
             print('loading pretrained model:',model_fname)
-            model = torch.load(model_fname)
+            model_ld = torch.load(model_fname)
+            # tweak
+            batch_size_test = 4
+            from models_trajGRU.model_euler_lagrange import EF_el
+            model = EF_el(model_ld.encoder, model_ld.forecaster,
+                          opt.image_size, batch_size_test, opt.model_mode).to(device)
+            del model_ld
             loss_fn = torch.nn.MSELoss()
 
         # smaller batch size is used, since trajGRU is heavy on memory
-        batch_size_test = 4
+        #batch_size_test = 4
+        #batch_size_test = opt.batch_size
         # prepare loader
         test_dataset = JMARadarDataset(root_dir=opt.valid_data_path,
                                         csv_file=opt.test_path,
