@@ -25,12 +25,23 @@ def nearest_neighbor_interp(xy_grd_b,xy_pc_b,R_pc_b):
     '''
     Input: xy_grd_b bxNx2 matrix where b is batch size, N is regular grid mesh size
            xy_pc_b  bxMx2 matrix where b is batch size, M is point cloud size
-           R_pc_b   bxMxk matrix where b is batch size, M is point cloud size
-    Output: R_grd_b  bxNxk interpolated value at grid point
+           R_pc_b   bxkxM matrix where b is batch size, M is point cloud size
+    Output: R_grd_b  bxkxN interpolated value at grid point
     '''
     b,k,M = R_pc_b.shape
-    D = batch_pairwise_distances(xy_grd_b, xy_pc_b)
-    id_min = torch.min(D,2).indices
+    _,N,_ = xy_grd_b.shape
+    #D = batch_pairwise_distances(xy_grd_b, xy_pc_b)
+    #id_min = torch.min(D,2).indices
+    id_min = torch.zeros([b,N],dtype=torch.int64).cuda()
+    splits = 100
+    #for n in range(N):
+    #    D = batch_pairwise_distances(xy_grd_b[:,n:n+1,:], xy_pc_b)
+    #    id_min[:,n:n+1] = torch.min(D,2).indices
+    for nsp in np.array_split(range(N),splits):
+        D = batch_pairwise_distances(xy_grd_b[:,nsp,:], xy_pc_b)
+        id_min[:,nsp] = torch.min(D,2).indices
+        #if(n % 1000 == 0):
+        #    print("n=",n)
     # add dimension 
     #id_min = id_min[:,None,:]
     id_min = torch.stack(k*[id_min],axis=1)

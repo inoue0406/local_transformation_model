@@ -53,6 +53,11 @@ def parse_opts():
         type=str,
         help='Model Mode')
     parser.add_argument(
+        '--interp_type',
+        default='bilinear',
+        type=str,
+        help='Interpolation type in Euler-Lagrange model')
+    parser.add_argument(
         '--transfer_path',
         default='None',
         type=str,
