@@ -119,8 +119,12 @@ class EF_el(nn.Module):
         state = self.encoder(input_p)
         output = self.forecaster(state)
         # calc UV as an output of trajGRU
-        UV_grd =  output.permute((1, 0, 2, 3, 4))
+        output = output.permute((1, 0, 2, 3, 4))
+        # use first 2 dims as uv
+        UV_grd = output[:,:,[0,1],:,:]
         UV_grd =  (UV_grd - 0.5)*5.0
+        # use last 1 dims as coeff
+        C_grd = output[:,:,[2],:,:]
         #return output
 
         if self.mode=="velocity":
@@ -154,13 +158,17 @@ class EF_el(nn.Module):
             # Interpolate UV to Point Cloud position
             if self.interp_type == "bilinear":
                 UV_pc = grid_to_pc(UV_grd[:,it,:,:,:],XY_pc)
+                C_pc = grid_to_pc(C_grd[:,it,:,:,:],XY_pc)
             elif self.interp_type == "nearest":
                 UV_pc = grid_to_pc_nearest(UV_grd[:,it,:,:,:],XY_pc,XY_grd)
+                C_pc = grid_to_pc_nearest(C_grd[:,it,:,:,:],XY_pc,XY_grd)
                 
             print('max_uv',torch.max(UV_pc).cpu().detach().numpy(),'min_uv',torch.min(UV_pc).cpu().detach().numpy())
             # Calc Time Progress
             XY_pc = XY_pc + UV_pc
             XY_pc = torch.clamp(XY_pc,min=0.0,max=1.0) # XY should be in [0,1]
+            R_pc = R_pc * C_pc # multiplicative
+            R_pc = torch.clamp(R_pc,min=0.0,max=1.0) # R_pc should be in [0,1]
             # Interpolate PC to Grid
             if self.interp_type == "bilinear":
                 R_grd = pc_to_grid(R_pc,XY_pc,height)
