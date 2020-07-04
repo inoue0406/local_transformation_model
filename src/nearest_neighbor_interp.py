@@ -33,7 +33,7 @@ def nearest_neighbor_interp(xy_grd_b,xy_pc_b,R_pc_b):
     #D = batch_pairwise_distances(xy_grd_b, xy_pc_b)
     #id_min = torch.min(D,2).indices
     id_min = torch.zeros([b,N],dtype=torch.int64).cuda()
-    splits = 100
+    splits = 1000
     #for n in range(N):
     #    D = batch_pairwise_distances(xy_grd_b[:,n:n+1,:], xy_pc_b)
     #    id_min[:,n:n+1] = torch.min(D,2).indices
