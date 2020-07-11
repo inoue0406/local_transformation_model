@@ -4,9 +4,10 @@ from models_trajGRU.utils import make_layers
 import logging
 
 class Forecaster(nn.Module):
-    def __init__(self, subnets, rnns):
+    def __init__(self, subnets, rnns, seq_len):
         super().__init__()
         assert len(subnets) == len(rnns)
+        self.seq_len = seq_len
 
         self.blocks = len(subnets)
 
@@ -15,7 +16,7 @@ class Forecaster(nn.Module):
             setattr(self, 'stage' + str(self.blocks-index), make_layers(params))
 
     def forward_by_stage(self, input, state, subnet, rnn):
-        input, state_stage = rnn(input, state, seq_len=12)
+        input, state_stage = rnn(input, state, seq_len=self.seq_len)
         seq_number, batch_size, input_channel, height, width = input.size()
         input = torch.reshape(input, (-1, input_channel, height, width))
         input = subnet(input)

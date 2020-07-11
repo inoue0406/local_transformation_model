@@ -116,7 +116,7 @@ class EF_el(nn.Module):
         bsize, tsize, channels, height, width = input.size()
         # permute to match radarJMA dataset
         input_p = input.permute((1, 0, 2, 3, 4))
-        # 
+        #
         state = self.encoder(input_p)
         output = self.forecaster(state)
         # calc UV as an output of trajGRU

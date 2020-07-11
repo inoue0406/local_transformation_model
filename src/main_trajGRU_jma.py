@@ -273,13 +273,13 @@ if __name__ == '__main__':
             # trajGRU model
             from models_trajGRU.model import EF
             encoder = Encoder(trajgru_encoder_params[0], trajgru_encoder_params[1]).to(device)
-            forecaster = Forecaster(trajgru_forecaster_params[0], trajgru_forecaster_params[1]).to(device)
+            forecaster = Forecaster(trajgru_forecaster_params[0], trajgru_forecaster_params[1],opt.tdim_use).to(device)
             model = EF(encoder, forecaster).to(device)
         elif opt.model_name == 'trajgru_el':
             # trajGRU Euler-Lagrange Model
             from models_trajGRU.model_euler_lagrange import EF_el
             encoder = Encoder(trajgru_encoder_params[0], trajgru_encoder_params[1]).to(device)
-            forecaster = Forecaster(trajgru_forecaster_params[0], trajgru_forecaster_params[1]).to(device)
+            forecaster = Forecaster(trajgru_forecaster_params[0], trajgru_forecaster_params[1],opt.tdim_use).to(device)
             model = EF_el(encoder, forecaster, opt.image_size, opt.batch_size, opt.model_mode, opt.interp_type).to(device)
     
         if opt.transfer_path != 'None':

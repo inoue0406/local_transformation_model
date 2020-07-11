@@ -139,6 +139,7 @@ class TrajGRU(BaseConvRNN):
                                   self._state_width), dtype=torch.float).to(device)
         if inputs is not None:
             S, B, C, H, W = inputs.size()
+            seq_len = S
             i2h = self.i2h(torch.reshape(inputs, (-1, C, H, W)))
             i2h = torch.reshape(i2h, (S, B, i2h.size(1), i2h.size(2), i2h.size(3)))
             i2h_slice = torch.split(i2h, self._num_filter, dim=2)
