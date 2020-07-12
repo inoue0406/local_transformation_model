@@ -46,7 +46,7 @@ def mod_str_interval(inte_str):
 
 # plot comparison of predicted vs ground truth
 def plot_comp_prediction(data_path,filelist,model_fname,batch_size,tdim_use,
-                         df_sampled,pic_path,scl,case,mode='png_whole'):
+                         df_sampled,pic_path,scl,case,img_size,interp_type,mode='png_whole'):
     # create pic save dir
     if not os.path.exists(pic_path):
         os.mkdir(pic_path)
@@ -64,7 +64,7 @@ def plot_comp_prediction(data_path,filelist,model_fname,batch_size,tdim_use,
 
     from models_trajGRU.model_euler_lagrange import EF_el
     model = EF_el(model_ld.encoder, model_ld.forecaster,
-                  200, batch_size, "run").to(device)
+                  img_size, batch_size, "run",interp_type).to(device)
     del model_ld
 
     # evaluation mode
@@ -142,6 +142,9 @@ if __name__ == '__main__':
     # params
     batch_size = 4
     tdim_use = 12
+    img_size = 128
+    #img_size = 200
+    interp_type = "nearest"
 
     # read case name from command line
     argvs = sys.argv
@@ -155,8 +158,10 @@ if __name__ == '__main__':
     #case = 'result_20190712_tr_clstm_flatsampled'
     #case = 'result_20190625_clstm_lrdecay07_ep20'
 
-    #data_path = '../data/data_kanto_resize/'
-    data_path = '../data/data_kanto/'
+    if img_size == 128:
+        data_path = '../data/data_kanto_resize/'
+    elif img_size == 200:
+        data_path = '../data/data_kanto/'
     filelist = '../data/valid_simple_JMARadar.csv'
     model_fname = case + '/trained_CLSTM.model'
     pic_path = case + '/png/'
@@ -182,6 +187,6 @@ if __name__ == '__main__':
     print(df_sampled)
     
     plot_comp_prediction(data_path,filelist,model_fname,batch_size,tdim_use,
-                         df_sampled,pic_path,scl,case,mode='png_ind')
+                         df_sampled,pic_path,scl,case,img_size,interp_type,mode='png_ind')
 
 
