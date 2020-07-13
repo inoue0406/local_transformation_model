@@ -68,6 +68,11 @@ def parse_opts():
         type=int,
         help='Temporal duration to be used')
     parser.add_argument(
+        '--tdim_loss',
+        default=12,
+        type=int,
+        help='Temporal duration to be used in a loss calculation')
+    parser.add_argument(
         '--optimizer',
         type=str,
         help='Optimizer type adam or rmsprop')

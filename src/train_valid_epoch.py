@@ -30,7 +30,9 @@ def train_epoch(epoch,num_epochs,train_loader,model,loss_fn,optimizer,train_logg
         # Forward + Backward + Optimize
         optimizer.zero_grad()
         output = model(input)
-        loss = loss_fn(output, target)
+        # use opt.tdim_loss steps
+        loss = loss_fn(output[:,0:opt.tdim_loss,:,:,:], target[:,0:opt.tdim_loss,:,:,:])
+        # loss = loss_fn(output, target)
         loss.backward()
         optimizer.step()
         # for logging
