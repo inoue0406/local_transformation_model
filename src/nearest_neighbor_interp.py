@@ -1,6 +1,11 @@
 import torch
 
 import numpy as np
+from scipy.spatial import cKDTree
+
+from multiprocessing import Pool
+from multiprocessing import Process
+
 
 def batch_pairwise_distances(x, y=None):
     '''
@@ -43,6 +48,46 @@ def nearest_neighbor_interp(xy_grd_b,xy_pc_b,R_pc_b):
         id_min[:,nsp] = torch.min(D,2).indices
         #if(n % 1000 == 0):
         #    print("n=",n)
+    # add dimension 
+    #id_min = id_min[:,None,:]
+    id_min = torch.stack(k*[id_min],axis=1)
+    # interpolate from point cloud to grid
+    R_grd_b = torch.gather(R_pc_b,2,id_min)
+    return R_grd_b
+
+# ------------------------------------------
+# kdtree for faster implementation
+
+def min_dist_KDTree(inputs):
+    points_A,points_B = inputs
+    # minimum distance by KDTree
+    
+    # create KDTree
+    kd_tree = cKDTree(points_B)
+
+    dists, indices = kd_tree.query(points_A, k=1)
+    
+    return indices
+
+def multi_mindist(xy_grd_b,xy_pc_b,bs):
+    inputs = [(xy_grd_b[n,:,:],xy_pc_b[n,:,:]) for n in range(bs)]
+    with Pool(8) as p:
+        result = p.map(min_dist_KDTree,inputs)
+    return np.stack(result)
+
+def nearest_neighbor_interp_kd(xy_grd_b,xy_pc_b,R_pc_b):
+    '''
+    Input: xy_grd_b bxNx2 matrix where b is batch size, N is regular grid mesh size
+           xy_pc_b  bxMx2 matrix where b is batch size, M is point cloud size
+           R_pc_b   bxkxM matrix where b is batch size, M is point cloud size
+    Output: R_grd_b  bxkxN interpolated value at grid point
+    '''
+    b,k,M = R_pc_b.shape
+    _,N,_ = xy_grd_b.shape
+    # minimum distance by KDTree
+    id_min_np = multi_mindist(xy_grd_b.cpu().detach().numpy(),
+                           xy_pc_b.cpu().detach().numpy(),b)
+    id_min = torch.from_numpy(id_min_np).cuda()
     # add dimension 
     #id_min = id_min[:,None,:]
     id_min = torch.stack(k*[id_min],axis=1)
@@ -102,6 +147,8 @@ if __name__ == '__main__':
     #R_grd_b = nearest_neighbor_interp(xy_grd_b,xy_pc_b,R_pc_b)
 
     R_grd_b = nearest_neighbor_interp(xy_grd_b,xy_pc_b,RR_pc_b)
+    
+    R_grd_b2 = nearest_neighbor_interp_kd(xy_grd_b,xy_pc_b,RR_pc_b)
     
     import pdb;pdb.set_trace()
     
