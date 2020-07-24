@@ -70,9 +70,16 @@ def min_dist_KDTree(inputs):
     return indices
 
 def multi_mindist(xy_grd_b,xy_pc_b,bs):
-    inputs = [(xy_grd_b[n,:,:],xy_pc_b[n,:,:]) for n in range(bs)]
-    with Pool(8) as p:
-        result = p.map(min_dist_KDTree,inputs)
+    # multicore 
+    #inputs = [(xy_grd_b[n,:,:],xy_pc_b[n,:,:]) for n in range(bs)]
+    #with Pool(5) as p:
+    #   result = p.map(min_dist_KDTree,inputs)
+    # single core
+    result = []
+    for n in range(bs):
+          res = min_dist_KDTree([xy_grd_b[n,:,:],xy_pc_b[n,:,:]])
+          result.append(res)
+          
     return np.stack(result)
 
 def nearest_neighbor_interp_kd(xy_grd_b,xy_pc_b,R_pc_b):

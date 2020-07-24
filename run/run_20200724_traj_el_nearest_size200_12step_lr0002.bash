@@ -1,16 +1,15 @@
 #!/bin/bash
 
-case="result_20200723_traj_el_nearest_size128_12step_trans"
+case="result_20200724_traj_el_nearest_size200_12step_trans"
 
 # running script for Rainfall Prediction with ConvLSTM
 #python -m cProfile -s cumulative ../src/main_trajGRU_jma.py --model_name trajgru_el \
 python ../src/main_trajGRU_jma.py --model_name trajgru_el \
        --dataset radarJMA --model_mode run --data_scaling linear\
-       --data_path ../data/data_kanto_resize/ --image_size 128 \
-       --valid_data_path ../data/data_kanto_resize/ \
+       --data_path ../data/data_kanto/ --image_size 200 \
+       --valid_data_path ../data/data_kanto/ \
        --train_path ../data/train_simple_JMARadar.csv \
        --valid_path ../data/valid_simple_JMARadar.csv \
-       --transfer_path  ../run/result_20200713_traj_el_nearest_size128_1step_lr0002/trained_CLSTM.model \
        --test --eval_threshold 0.5 10 20 --test_path ../data/valid_simple_JMARadar.csv \
        --result_path $case --tdim_use 12 --tdim_loss 12 --learning_rate 0.0002 --lr_decay 0.8 \
        --batch_size 10 --n_epochs 20 --n_threads 4 --checkpoint 10 \
