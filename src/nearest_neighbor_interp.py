@@ -6,6 +6,7 @@ from scipy.spatial import cKDTree
 from multiprocessing import Pool
 from multiprocessing import Process
 
+import faiss
 
 def batch_pairwise_distances(x, y=None):
     '''
@@ -97,6 +98,95 @@ def nearest_neighbor_interp_kd(xy_grd_b,xy_pc_b,R_pc_b):
     id_min = torch.from_numpy(id_min_np).cuda()
     # add dimension 
     #id_min = id_min[:,None,:]
+    id_min = torch.stack(k*[id_min],axis=1)
+    # interpolate from point cloud to grid
+    R_grd_b = torch.gather(R_pc_b,2,id_min)
+    return R_grd_b
+
+# ------------------------------------------
+# feiss implementation
+def swig_ptr_from_FloatTensor(x):
+    assert x.is_contiguous()
+    assert x.dtype == torch.float32
+    return faiss.cast_integer_to_float_ptr(
+        x.storage().data_ptr() + x.storage_offset() * 4)
+
+def swig_ptr_from_LongTensor(x):
+    assert x.is_contiguous()
+    assert x.dtype == torch.int64, 'dtype=%s' % x.dtype
+    return faiss.cast_integer_to_long_ptr(
+        x.storage().data_ptr() + x.storage_offset() * 8)
+
+def search_raw_array_pytorch(res, xb, xq, k, D=None, I=None,
+                             metric=faiss.METRIC_L2):
+    assert xb.device == xq.device
+
+    nq, d = xq.size()
+    if xq.is_contiguous():
+        xq_row_major = True
+    elif xq.t().is_contiguous():
+        xq = xq.t()    # I initially wrote xq:t(), Lua is still haunting me :-)
+        xq_row_major = False
+    else:
+        raise TypeError('matrix should be row or column-major')
+
+    xq_ptr = swig_ptr_from_FloatTensor(xq)
+
+    nb, d2 = xb.size()
+    assert d2 == d
+    if xb.is_contiguous():
+        xb_row_major = True
+    elif xb.t().is_contiguous():
+        xb = xb.t()
+        xb_row_major = False
+    else:
+        raise TypeError('matrix should be row or column-major')
+    xb_ptr = swig_ptr_from_FloatTensor(xb)
+
+    if D is None:
+        D = torch.empty(nq, k, device=xb.device, dtype=torch.float32)
+    else:
+        assert D.shape == (nq, k)
+        assert D.device == xb.device
+
+    if I is None:
+        I = torch.empty(nq, k, device=xb.device, dtype=torch.int64)
+    else:
+        assert I.shape == (nq, k)
+        assert I.device == xb.device
+
+    D_ptr = swig_ptr_from_FloatTensor(D)
+    I_ptr = swig_ptr_from_LongTensor(I)
+
+    faiss.bruteForceKnn(res, metric,
+    #faiss.bfKnn(res, metric,
+                        xb_ptr, xb_row_major, nb,
+                        xq_ptr, xq_row_major, nq,
+                        d, k, D_ptr, I_ptr)
+
+    return D, I
+
+def nearest_neighbor_interp_fe(xy_grd_b,xy_pc_b,R_pc_b):
+    '''
+    Input: xy_grd_b bxNx2 matrix where b is batch size, N is regular grid mesh size
+           xy_pc_b  bxMx2 matrix where b is batch size, M is point cloud size
+           R_pc_b   bxkxM matrix where b is batch size, M is point cloud size
+    Output: R_grd_b  bxkxN interpolated value at grid point
+    '''
+    b,k,M = R_pc_b.shape
+    _,N,_ = xy_grd_b.shape
+    # minimum distance by feiss
+    # resource object, can be re-used over calls
+    res = faiss.StandardGpuResources()
+    # put on same stream as pytorch to avoid synchronizing streams
+    res.setDefaultNullStreamAllDevices()
+    
+    id_min = torch.zeros([b,N],dtype=torch.int64).cuda()
+    for n in range(b):
+       #D,ID = search_raw_array_pytorch(res,xy_grd_b[n,:,:],xy_pc_b[n,:,:],1)
+       D,ID = search_raw_array_pytorch(res,xy_pc_b[n,:,:],xy_grd_b[n,:,:],1)
+       id_min[n,:] = ID[:,0]
+    # add dimension 
     id_min = torch.stack(k*[id_min],axis=1)
     # interpolate from point cloud to grid
     R_grd_b = torch.gather(R_pc_b,2,id_min)

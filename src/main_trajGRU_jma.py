@@ -156,22 +156,22 @@ if __name__ == '__main__':
         trajgru_encoder_params = [
             [
                 OrderedDict({'conv1_leaky_1': [1, 8, 7, 3, 1]}),
-                OrderedDict({'conv2_leaky_1': [64, 128, 5, 3, 1]}),
-                OrderedDict({'conv3_leaky_1': [128, 128, 3, 2, 1]}),
+                OrderedDict({'conv2_leaky_1': [32, 96, 5, 3, 1]}),
+                OrderedDict({'conv3_leaky_1': [96, 96, 3, 2, 1]}),
             ],
             
             [
-                TrajGRU(input_channel=8, num_filter=64, b_h_w=(opt.batch_size, 66,66), zoneout=0.0, L=13,
+                TrajGRU(input_channel=8, num_filter=32, b_h_w=(opt.batch_size, 66,66), zoneout=0.0, L=13,
                         i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
                         h2h_kernel=(5, 5), h2h_dilate=(1, 1),
                         act_type=ACT_TYPE),
                 
-                TrajGRU(input_channel=128, num_filter=128, b_h_w=(opt.batch_size, 22, 22), zoneout=0.0, L=13,
+                TrajGRU(input_channel=96, num_filter=96, b_h_w=(opt.batch_size, 22, 22), zoneout=0.0, L=13,
          
                i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
                         h2h_kernel=(5, 5), h2h_dilate=(1, 1),
                         act_type=ACT_TYPE),
-                TrajGRU(input_channel=128, num_filter=128, b_h_w=(opt.batch_size, 11, 11), zoneout=0.0, L=9,
+                TrajGRU(input_channel=96, num_filter=96, b_h_w=(opt.batch_size, 11, 11), zoneout=0.0, L=9,
                         i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
                         h2h_kernel=(3, 3), h2h_dilate=(1, 1),
                         act_type=ACT_TYPE)
@@ -179,10 +179,10 @@ if __name__ == '__main__':
         ]
         trajgru_forecaster_params = [
             [
-                OrderedDict({'deconv1_leaky_1': [128, 128, 4, 2, 1]}),
-                OrderedDict({'deconv2_leaky_1': [128, 64, 5, 3, 1]}),
+                OrderedDict({'deconv1_leaky_1': [96, 96, 4, 2, 1]}),
+                OrderedDict({'deconv2_leaky_1': [96, 32, 5, 3, 1]}),
                 OrderedDict({
-                    'deconv3_leaky_1': [64, 8, 7, 3, 1],
+                    'deconv3_leaky_1': [32, 8, 7, 3, 1],
                     'conv3_leaky_2': [8, 8, 3, 1, 1],
 #                    'conv3_3': [8, 1, 1, 1, 0]
                     'conv3_3': [8, 3, 1, 1, 0]
@@ -190,16 +190,16 @@ if __name__ == '__main__':
             ],
         
             [
-                TrajGRU(input_channel=128, num_filter=128, b_h_w=(opt.batch_size, 11, 11), zoneout=0.0, L=13,
+                TrajGRU(input_channel=96, num_filter=96, b_h_w=(opt.batch_size, 11, 11), zoneout=0.0, L=13,
                         i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
                         h2h_kernel=(3, 3), h2h_dilate=(1, 1),
                         act_type=ACT_TYPE),
         
-                TrajGRU(input_channel=128, num_filter=128, b_h_w=(opt.batch_size, 22, 22), zoneout=0.0, L=13,
+                TrajGRU(input_channel=96, num_filter=96, b_h_w=(opt.batch_size, 22, 22), zoneout=0.0, L=13,
                         i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
                         h2h_kernel=(5, 5), h2h_dilate=(1, 1),
                         act_type=ACT_TYPE),
-                TrajGRU(input_channel=64, num_filter=64, b_h_w=(opt.batch_size, 66, 66), zoneout=0.0, L=9,
+                TrajGRU(input_channel=32, num_filter=32, b_h_w=(opt.batch_size, 66, 66), zoneout=0.0, L=9,
                         i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
                         h2h_kernel=(5, 5), h2h_dilate=(1, 1),
                         act_type=ACT_TYPE)
