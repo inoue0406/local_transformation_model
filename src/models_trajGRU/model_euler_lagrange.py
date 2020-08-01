@@ -66,8 +66,8 @@ def grid_to_pc_nearest(R_grd,XY_pc,XY_grd):
     XY_pc_tmp = XY_pc.permute(0,2,1).detach()
     R_grd_tmp = R_grd.reshape(batch,k,height*width)
     #R_pc = nearest_neighbor_interp(XY_pc_tmp,XY_grd_tmp,R_grd_tmp)
-    #R_pc = nearest_neighbor_interp_kd(XY_pc_tmp,XY_grd_tmp,R_grd_tmp)
-    R_pc = nearest_neighbor_interp_fe(XY_pc_tmp,XY_grd_tmp,R_grd_tmp)
+    R_pc = nearest_neighbor_interp_kd(XY_pc_tmp,XY_grd_tmp,R_grd_tmp)
+    #R_pc = nearest_neighbor_interp_fe(XY_pc_tmp,XY_grd_tmp,R_grd_tmp)
     #import pdb;pdb.set_trace()
     return R_pc
 
@@ -91,9 +91,11 @@ def pc_to_grid_nearest(R_pc,XY_pc,XY_grd):
     _,k,_ = R_pc.shape
     XY_grd_tmp = XY_grd.reshape(batch,2,height*width).permute(0,2,1).detach()
     XY_pc_tmp = XY_pc.permute(0,2,1).detach()
-    #R_grd = nearest_neighbor_interp(XY_pc_tmp,XY_grd_tmp,R_pc)
-    #R_grd = nearest_neighbor_interp_kd(XY_pc_tmp,XY_grd_tmp,R_pc)
-    R_grd = nearest_neighbor_interp_fe(XY_pc_tmp,XY_grd_tmp,R_pc)
+    #R_grd = nearest_neighbor_interp(XY_grd_tmp,XY_pc_tmp,R_pc)
+    #R_grd = nearest_neighbor_interp_kd(XY_grd_tmp,XY_pc_tmp,R_pc)
+    R_grd = nearest_neighbor_interp_kd(XY_grd_tmp,XY_grd_tmp,R_pc)
+    #R_grd = nearest_neighbor_interp_fe(XY_grd_tmp,XY_pc_tmp,R_pc)
+    #import pdb;pdb.set_trace()
     R_grd = R_grd.reshape(batch,k,height,width)
     return R_grd
 
@@ -148,13 +150,16 @@ class EF_el(nn.Module):
         Y_grd = torch.stack(bsize*[self.Ygrid]).unsqueeze(1)
         XY_grd = torch.cat([X_grd,Y_grd],dim=1).cuda()
         # Set Initial PC
-        XY_pc = XY_grd.clone().reshape(bsize,2,height*width)
-        R_pc = R_grd.reshape(bsize,1,height*width)
+        #XY_pc = XY_grd.clone().reshape(bsize,2,height*width)
+        spc = 1 # spacing
+        npc = int(height*width/spc/spc)
+        XY_pc = XY_grd[:,:,::spc,::spc].clone().reshape(bsize,2,npc)
+        R_pc = R_grd[:,:,::spc,::spc].reshape(bsize,1,npc)
 
         xout = torch.zeros(bsize, tsize, channels, height, width,  requires_grad=True).cuda()
         if self.mode == "check":
-            r_pc_out = torch.zeros(bsize, tsize, channels, height*width).cuda()
-            xy_pc_out = torch.zeros(bsize, tsize, 2, height*width).cuda()
+            r_pc_out = torch.zeros(bsize, tsize, channels, npc).cuda()
+            xy_pc_out = torch.zeros(bsize, tsize, 2, npc).cuda()
         xzero = torch.zeros(bsize, channels, height, width,  requires_grad=True).cuda() # ! should I put zero here?
         
         for it in range(tsize):
