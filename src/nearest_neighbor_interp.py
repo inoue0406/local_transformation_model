@@ -117,6 +117,31 @@ def swig_ptr_from_LongTensor(x):
     return faiss.cast_integer_to_long_ptr(
         x.storage().data_ptr() + x.storage_offset() * 8)
 
+def search_index_pytorch(index, x, k, D=None, I=None):
+    """call the search function of an index with pytorch tensor I/O (CPU
+    and GPU supported)"""
+    assert x.is_contiguous()
+    n, d = x.size()
+    assert d == index.d
+    
+    if D is None:
+        D = torch.empty((n, k), dtype=torch.float32, device=x.device)
+    else:
+        assert D.size() == (n, k)
+        
+    if I is None:
+        I = torch.empty((n, k), dtype=torch.int64, device=x.device)
+    else:
+        assert I.size() == (n, k)
+    torch.cuda.synchronize()
+    xptr = swig_ptr_from_FloatTensor(x)
+    Iptr = swig_ptr_from_LongTensor(I)
+    Dptr = swig_ptr_from_FloatTensor(D)
+    index.search_c(n, xptr,
+                   k, Dptr, Iptr)
+    torch.cuda.synchronize()
+    return D, I
+
 def search_raw_array_pytorch(res, xb, xq, k, D=None, I=None,
                              metric=faiss.METRIC_L2):
     assert xb.device == xq.device
@@ -166,31 +191,135 @@ def search_raw_array_pytorch(res, xb, xq, k, D=None, I=None,
 
     return D, I
 
-def nearest_neighbor_interp_fe(xy_grd_b,xy_pc_b,R_pc_b):
+def nearest_neighbor_interp_fe(xy_A_b,xy_B_b,R_B_b):
     '''
-    Input: xy_grd_b bxNx2 matrix where b is batch size, N is regular grid mesh size
-           xy_pc_b  bxMx2 matrix where b is batch size, M is point cloud size
-           R_pc_b   bxkxM matrix where b is batch size, M is point cloud size
-    Output: R_grd_b  bxkxN interpolated value at grid point
+    Input: xy_A_b bxNx2 matrix where b is batch size, N is regular grid mesh size
+           xy_B_b  bxMx2 matrix where b is batch size, M is point cloud size
+           R_B_b   bxkxM matrix where b is batch size, M is point cloud size
+    Output: R_A_b  bxkxN interpolated value at grid point
     '''
-    b,k,M = R_pc_b.shape
-    _,N,_ = xy_grd_b.shape
+    b,k,M = R_B_b.shape
+    _,N,_ = xy_A_b.shape
     # minimum distance by feiss
-    # resource object, can be re-used over calls
-    res = faiss.StandardGpuResources()
-    # put on same stream as pytorch to avoid synchronizing streams
-    res.setDefaultNullStreamAllDevices()
+
+    #method = "FlatIP"
+    method = "IVF"
     
     id_min = torch.zeros([b,N],dtype=torch.int64).cuda()
+    
     for n in range(b):
-       #D,ID = search_raw_array_pytorch(res,xy_grd_b[n,:,:],xy_pc_b[n,:,:],1)
-       D,ID = search_raw_array_pytorch(res,xy_pc_b[n,:,:],xy_grd_b[n,:,:],1)
-       id_min[n,:] = ID[:,0]
+
+        points_A = xy_A_b[n,:,:].detach().contiguous()
+        points_B = xy_B_b[n,:,:].detach().cpu().numpy()
+        
+        if method == "FlatIP":
+            res = faiss.StandardGpuResources()
+            index = faiss.GpuIndexFlatIP(res, 2)
+            index.add(points_B)
+        elif method == "IVF":
+            res = faiss.StandardGpuResources()
+            nlist = 100
+            quantizer = faiss.IndexFlatL2(2)  # the other index
+            index_ivf = faiss.IndexIVFFlat(quantizer, 2, nlist, faiss.METRIC_L2)
+            # here we specify METRIC_L2, by default it performs inner-product search
+        
+            # make it an IVF GPU index
+            index = faiss.index_cpu_to_gpu(res, 0, index_ivf)
+    
+            assert not index.is_trained
+            index.train(points_B)        # add vectors to the index
+            assert index.is_trained
+            index.add(points_B)          # add vectors to the index        
+
+        # (1) search_index_pytorch
+        # query is pytorch tensor (GPU)
+        # no need for a sync here
+        D, ID = search_index_pytorch(index, points_A, 1)
+        res.syncDefaultStreamCurrentDevice()
+        #D,ID = search_raw_array_pytorch(res,xy_B_b[n,:,:],xy_A_b[n,:,:],1)
+        id_min[n,:] = ID[:,0]
+        
     # add dimension 
     id_min = torch.stack(k*[id_min],axis=1)
     # interpolate from point cloud to grid
-    R_grd_b = torch.gather(R_pc_b,2,id_min)
-    return R_grd_b
+    R_A_b = torch.gather(R_B_b,2,id_min)
+    return R_A_b
+
+def set_index_faiss(points_B):
+    # set FAISS index
+    # points_B : numpy array with Mx2 dimension
+    #method = "FlatIP"
+    method = "IVF"
+    if method == "FlatIP":
+        res = faiss.StandardGpuResources()
+        index = faiss.GpuIndexFlatIP(res, 2)
+        index.add(points_B)
+    elif method == "IVF":
+        res = faiss.StandardGpuResources()
+        nlist = 100
+        quantizer = faiss.IndexFlatL2(2)  # the other index
+        index_ivf = faiss.IndexIVFFlat(quantizer, 2, nlist, faiss.METRIC_L2)
+        # here we specify METRIC_L2, by default it performs inner-product search
+        # make it an IVF GPU index
+        index = faiss.index_cpu_to_gpu(res, 0, index_ivf)
+
+        assert not index.is_trained
+        index.train(points_B)        # add vectors to the index
+        assert index.is_trained
+        index.add(points_B)          # add vectors to the index
+    return index
+
+def nearest_neighbor_interp_fi(xy_A_b,xy_B_b,R_B_b,index,mode):
+    '''
+    Interpolation by faiss with "precalculated" index
+    Input: xy_A_b bxNx2 matrix where b is batch size, N is regular grid mesh size
+           xy_B_b  bxMx2 matrix where b is batch size, M is point cloud size
+           R_B_b   bxkxM matrix where b is batch size, M is point cloud size
+           index  faiss index
+           mode   forward or backward
+    Output: R_A_b  bxkxN interpolated value at grid point
+    '''
+    b,k,M = R_B_b.shape
+    _,N,_ = xy_A_b.shape
+    # minimum distance by faiss
+    #print("R_B_b shape",R_B_b.shape)
+
+    id_min = torch.zeros([b,N],dtype=torch.int64).cuda()
+    
+    for n in range(b):
+
+        if mode=="forward":
+            # forward : use normal query 
+            points_A = xy_A_b[n,:,:].detach().contiguous()
+            D, ID = search_index_pytorch(index, points_A, 1)
+            #res.syncDefaultStreamCurrentDevice()
+            #print("ID shape fwd",ID.shape)
+            
+        elif mode=="backward":
+            # backward : use reverse query with forward index
+            points_B = xy_B_b[n,:,:].detach().contiguous()
+            k_rev = 5
+            DR, IDR = search_index_pytorch(index, points_B, k_rev)
+            # create distance table
+            D_tbl = torch.full((N,k_rev),999.9).cuda()
+            ID_tbl = torch.zeros(N,k_rev,dtype=torch.int64).cuda()
+            # fill distance table
+            for kk in range(k_rev):
+                D_tbl[IDR[:,kk],kk] = DR[:,kk]
+                ID_tbl[IDR[:,kk],kk] = torch.arange(M).cuda()
+            min_index = torch.argmin(D_tbl,dim=1,keepdim=True)
+            ID = ID_tbl.gather(1,min_index)
+            #import pdb;pdb.set_trace()
+            #print("ID shape back",ID.shape)
+            
+        id_min[n,:] = ID[:,0]
+        
+    # add dimension 
+    id_min = torch.stack(k*[id_min],axis=1)
+    # interpolate from point cloud to grid
+    #print("id_min shape",id_min.shape)
+    R_A_b = torch.gather(R_B_b,2,id_min)
+    return R_A_b
 
 if __name__ == '__main__':
     # test for distance function

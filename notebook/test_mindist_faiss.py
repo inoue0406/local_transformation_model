@@ -104,18 +104,37 @@ if __name__ == '__main__':
     M = 20000
     bs = 10
     d = 2
-
+    np.random.seed(999)
     points_A = np.random.randn(N, 2).astype('float32')
-    points_B = np.random.randn(M, 2).astype('float32')
+    points_B = points_A
+    #points_B = np.random.randn(M, 2).astype('float32')
     #points_A = faiss.randn(N * d, 1234).reshape(N, d)
     #points_B = faiss.randn(M * d, 1235).reshape(M, d)
     t1 = time.time()
 
     #import pdb;pdb.set_trace()
+    #method = "FlatIP"
+    method = "IVF"
 
-    res = faiss.StandardGpuResources()
-    index = faiss.GpuIndexFlatIP(res, 2)
-    index.add(points_B)
+    if method == "FlatIP":
+        res = faiss.StandardGpuResources()
+        index = faiss.GpuIndexFlatIP(res, 2)
+        index.add(points_B)
+    elif method == "IVF":
+        res = faiss.StandardGpuResources()
+        nlist = 100
+        quantizer = faiss.IndexFlatL2(d)  # the other index
+        index_ivf = faiss.IndexIVFFlat(quantizer, d, nlist, faiss.METRIC_L2)
+        # here we specify METRIC_L2, by default it performs inner-product search
+    
+        # make it an IVF GPU index
+        index = faiss.index_cpu_to_gpu(res, 0, index_ivf)
+
+        assert not index.is_trained
+        index.train(points_B)        # add vectors to the index
+        assert index.is_trained
+        
+        index.add(points_B)          # add vectors to the index        
 
     pa_torch = torch.from_numpy(points_A)
     pa_torch = pa_torch.cuda()
@@ -125,17 +144,20 @@ if __name__ == '__main__':
     # (1) search_index_pytorch
     # query is pytorch tensor (GPU)
     # no need for a sync here
-    #D3, I3 = search_index_pytorch(index, pa_torch, 1)
-    #res.syncDefaultStreamCurrentDevice()
+    D3, I3 = search_index_pytorch(index, pa_torch, 1)
+    res.syncDefaultStreamCurrentDevice()
     
     # (2) raw_array_search
     # resource object, can be re-used over calls
-    res = faiss.StandardGpuResources()
+    #res = faiss.StandardGpuResources()
     # put on same stream as pytorch to avoid synchronizing streams
-    res.setDefaultNullStreamAllDevices()
+    #res.setDefaultNullStreamAllDevices()
     
-    D, I = search_raw_array_pytorch(res, pb_torch, pa_torch, 1)
+    #D, I = search_raw_array_pytorch(res, pb_torch, pa_torch, 1)
     
     t2 = time.time()
     dt = t2-t1
+    print("method:",method)
     print("elapsed time: %f" % dt)
+    print(I3)
+    import pdb;pdb.set_trace()
