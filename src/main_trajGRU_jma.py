@@ -280,7 +280,7 @@ if __name__ == '__main__':
             from models_trajGRU.model_euler_lagrange import EF_el
             encoder = Encoder(trajgru_encoder_params[0], trajgru_encoder_params[1]).to(device)
             forecaster = Forecaster(trajgru_forecaster_params[0], trajgru_forecaster_params[1],opt.tdim_use).to(device)
-            model = EF_el(encoder, forecaster, opt.image_size, opt.batch_size, opt.model_mode, opt.interp_type).to(device)
+            model = EF_el(encoder, forecaster, opt.image_size, opt.pc_size, opt.batch_size, opt.model_mode, opt.interp_type).to(device)
     
         if opt.transfer_path != 'None':
             # Use pretrained weights for transfer learning
@@ -361,7 +361,7 @@ if __name__ == '__main__':
             batch_size_test = 4
             from models_trajGRU.model_euler_lagrange import EF_el
             model = EF_el(model_ld.encoder, model_ld.forecaster,
-                          opt.image_size, batch_size_test, opt.model_mode).to(device)
+                          opt.image_size, opt.pc_size, batch_size_test, opt.model_mode).to(device)
             del model_ld
             loss_fn = torch.nn.MSELoss()
 

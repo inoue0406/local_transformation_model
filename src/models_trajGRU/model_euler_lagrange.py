@@ -134,16 +134,28 @@ def pc_to_grid_nearest_id(R_pc,XY_pc,XY_grd,index):
 class EF_el(nn.Module):
     # Changed to Use Euler-Lagrange Forecaster
 
-    def __init__(self, encoder, forecaster, image_size, batch_size,
+    def __init__(self, encoder, forecaster, image_size, pc_size, batch_size,
                  mode="run", interp_type="bilinear"):
         super().__init__()
         self.encoder = encoder
         self.forecaster = forecaster
-        # grid
+        # set regular grid
         self.Xgrid,self.Ygrid = xy_grid(image_size,image_size)
+        # set pc grid
+        self.Xpc,self.Ypc = xy_grid(pc_size,pc_size)
+        # number of point cloud
+        self.npc = pc_size*pc_size
         # mode
         self.mode = mode
         self.interp_type = interp_type
+        # 
+        # set FAISS index
+        # Set Initial Grid (which will be fixed through time progress)
+        X_grd = torch.stack(batch_size*[self.Xgrid]).unsqueeze(1)
+        Y_grd = torch.stack(batch_size*[self.Ygrid]).unsqueeze(1)
+        XY_grd = torch.cat([X_grd,Y_grd],dim=1).cuda()
+        points_grd = XY_grd[0,:,:].reshape(2,image_size*image_size).permute(1,0).detach().cpu().numpy()
+        self.faiss_index = set_index_faiss(points_grd)
 
     def forward(self, input):
         
@@ -182,11 +194,11 @@ class EF_el(nn.Module):
         Y_grd = torch.stack(bsize*[self.Ygrid]).unsqueeze(1)
         XY_grd = torch.cat([X_grd,Y_grd],dim=1).cuda()
         # Set Initial PC
-        #XY_pc = XY_grd.clone().reshape(bsize,2,height*width)
-        spc = 1 # spacing
-        npc = int(height*width/spc/spc)
-        XY_pc = XY_grd[:,:,::spc,::spc].clone().reshape(bsize,2,npc)
-        R_pc = R_grd[:,:,::spc,::spc].reshape(bsize,1,npc)
+        X_pc = torch.stack(bsize*[self.Xpc]).unsqueeze(1)
+        Y_pc = torch.stack(bsize*[self.Ypc]).unsqueeze(1)
+        XY_pc = torch.cat([X_pc,Y_pc],dim=1).cuda()
+        XY_pc = XY_pc.clone().reshape(bsize,2,self.npc)
+        #R_pc = R_grd[:,:,::spc,::spc].reshape(bsize,1,npc)
 
         xout = torch.zeros(bsize, tsize, channels, height, width,  requires_grad=True).cuda()
         if self.mode == "check":
@@ -194,9 +206,8 @@ class EF_el(nn.Module):
             xy_pc_out = torch.zeros(bsize, tsize, 2, npc).cuda()
         xzero = torch.zeros(bsize, channels, height, width,  requires_grad=True).cuda() # ! should I put zero here?
         
-        # set FAISS index
-        points_grd = XY_grd[0,:,:].reshape(2,height*width).permute(1,0).detach().cpu().numpy()
-        faiss_index = set_index_faiss(points_grd)
+        # set initial point cloud value
+        R_pc = grid_to_pc_nearest_id(R_grd[:,:,:,:],XY_pc,XY_grd,self.faiss_index)
         
         for it in range(tsize):
             # UV has [batch, 2, height width] dimension
@@ -207,8 +218,8 @@ class EF_el(nn.Module):
             elif self.interp_type == "nearest":
 #                UV_pc = grid_to_pc_nearest(UV_grd[:,it,:,:,:],XY_pc,XY_grd)
 #                C_pc = grid_to_pc_nearest(C_grd[:,it,:,:,:],XY_pc,XY_grd)
-                UV_pc = grid_to_pc_nearest_id(UV_grd[:,it,:,:,:],XY_pc,XY_grd,faiss_index)
-                C_pc = grid_to_pc_nearest_id(C_grd[:,it,:,:,:],XY_pc,XY_grd,faiss_index)
+                UV_pc = grid_to_pc_nearest_id(UV_grd[:,it,:,:,:],XY_pc,XY_grd,self.faiss_index)
+                C_pc = grid_to_pc_nearest_id(C_grd[:,it,:,:,:],XY_pc,XY_grd,self.faiss_index)
                 
             print('max_uv',torch.max(UV_pc).cpu().detach().numpy(),'min_uv',torch.min(UV_pc).cpu().detach().numpy())
             # Calc Time Progress
@@ -221,7 +232,7 @@ class EF_el(nn.Module):
                 R_grd = pc_to_grid(R_pc,XY_pc,height)
             elif self.interp_type == "nearest":
 #                R_grd = pc_to_grid_nearest(R_pc,XY_pc,XY_grd)
-                R_grd = pc_to_grid_nearest_id(R_pc,XY_pc,XY_grd,faiss_index)
+                R_grd = pc_to_grid_nearest_id(R_pc,XY_pc,XY_grd,self.faiss_index)
 
             xout[:,it,:,:,:] = R_grd
             if self.mode == "check":
