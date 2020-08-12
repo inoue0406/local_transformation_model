@@ -285,7 +285,11 @@ if __name__ == '__main__':
         if opt.transfer_path != 'None':
             # Use pretrained weights for transfer learning
             print('loading pretrained model:',opt.transfer_path)
-            model = torch.load(opt.transfer_path)
+            # ###if the model is pickle
+            #model = torch.load(opt.transfer_path)
+            # ###if the model is state dict
+            model.load_state_dict(torch.load(transfer_path))
+
             model.model_mode = opt.model_mode
 
         modelinfo.write('Model Structure \n')
@@ -337,15 +341,15 @@ if __name__ == '__main__':
             if epoch % opt.checkpoint == 0:
                 # save the trained model for every checkpoint
                 # (1) as binary 
-                torch.save(model,os.path.join(opt.result_path,
-                                                 'trained_CLSTM_epoch%03d.model' % epoch))
+                #torch.save(model,os.path.join(opt.result_path,
+                #                                 'trained_CLSTM_epoch%03d.model' % epoch))
                 # (2) as state dictionary
                 torch.save(model.state_dict(),
                            os.path.join(opt.result_path,
                                         'trained_CLSTM_epoch%03d.dict' % epoch))
         # save the trained model
         # (1) as binary 
-        torch.save(model,os.path.join(opt.result_path, 'trained_CLSTM.model'))
+        #torch.save(model,os.path.join(opt.result_path, 'trained_CLSTM.model'))
         # (2) as state dictionary
         torch.save(model.state_dict(),
                    os.path.join(opt.result_path, 'trained_CLSTM.dict'))
@@ -356,7 +360,10 @@ if __name__ == '__main__':
             #load pretrained model from results directory
             model_fname = os.path.join(opt.result_path, 'trained_CLSTM.model')
             print('loading pretrained model:',model_fname)
-            model_ld = torch.load(model_fname)
+            # ###if the model is pickle
+            #model_ld = torch.load(model_fname)
+            # ###if the model is state dict
+            model.load_state_dict(torch.load(model_fname))
             # tweak
             batch_size_test = 4
             from models_trajGRU.model_euler_lagrange import EF_el
