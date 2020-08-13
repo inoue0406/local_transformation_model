@@ -288,7 +288,7 @@ if __name__ == '__main__':
             # ###if the model is pickle
             #model = torch.load(opt.transfer_path)
             # ###if the model is state dict
-            model.load_state_dict(torch.load(transfer_path))
+            model.load_state_dict(torch.load(opt.transfer_path))
 
             model.model_mode = opt.model_mode
 
