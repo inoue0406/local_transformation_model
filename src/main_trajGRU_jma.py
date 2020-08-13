@@ -21,14 +21,13 @@ from loss_funcs import *
 
 # trajGRU model
 from collections import OrderedDict
+from models_trajGRU.network_params_trajGRU import model_structure_convLSTM, model_structure_trajGRU
 from models_trajGRU.forecaster import Forecaster
 from models_trajGRU.encoder import Encoder
 from models_trajGRU.trajGRU import TrajGRU
 from models_trajGRU.convLSTM import ConvLSTM
 from models_trajGRU.loss import Weighted_mse_mae
-from models_trajGRU.model import activation
 device = torch.device("cuda")
-ACT_TYPE = activation('leaky', negative_slope=0.2, inplace=True)
 
 def count_parameters(model,f):
     for name,p in model.named_parameters():
@@ -56,157 +55,6 @@ if __name__ == '__main__':
 
     # model information
     modelinfo = open(os.path.join(opt.result_path, 'model_info.txt'),'w')
-
-    # model structure
-    # build model for convlstm
-    # modified for 128x128
-    convlstm_encoder_params = [
-        [
-            OrderedDict({'conv1_leaky_1': [1, 8, 7, 3, 1]}),
-            OrderedDict({'conv2_leaky_1': [64, 192, 5, 3, 1]}),
-            OrderedDict({'conv3_leaky_1': [192, 192, 3, 2, 1]}),
-        ],
-
-        [
-            ConvLSTM(input_channel=8, num_filter=64, b_h_w=(opt.batch_size, 42, 42),
-                     kernel_size=3, stride=1, padding=1),
-            ConvLSTM(input_channel=192, num_filter=192, b_h_w=(opt.batch_size, 14, 14),
-                     kernel_size=3, stride=1, padding=1),
-            ConvLSTM(input_channel=192, num_filter=192, b_h_w=(opt.batch_size, 7, 7),
-                     kernel_size=3, stride=1, padding=1),
-        ]
-    ]
-
-    convlstm_forecaster_params = [
-        [
-            OrderedDict({'deconv1_leaky_1': [192, 192, 4, 2, 1]}),
-            OrderedDict({'deconv2_leaky_1': [192, 64, 5, 3, 1]}),
-            OrderedDict({
-                'deconv3_leaky_1': [64, 8, 7, 3, 1],
-                'conv3_leaky_2': [8, 8, 3, 1, 1],
-                'conv3_3': [8, 1, 1, 1, 0]
-            }),
-        ],
-
-        [
-            ConvLSTM(input_channel=192, num_filter=192, b_h_w=(opt.batch_size, 7, 7),
-                     kernel_size=3, stride=1, padding=1),
-            ConvLSTM(input_channel=192, num_filter=192, b_h_w=(opt.batch_size, 14, 14),
-                     kernel_size=3, stride=1, padding=1),
-            ConvLSTM(input_channel=64, num_filter=64, b_h_w=(opt.batch_size, 42, 42),
-                     kernel_size=3, stride=1, padding=1),
-        ]
-    ]
-    # parameters for trajGRU
-    # build model
-    if opt.image_size == 128:
-        trajgru_encoder_params = [
-            [
-                OrderedDict({'conv1_leaky_1': [1, 8, 7, 3, 1]}),
-                OrderedDict({'conv2_leaky_1': [64, 192, 5, 3, 1]}),
-                OrderedDict({'conv3_leaky_1': [192, 192, 3, 2, 1]}),
-            ],
-            
-            [
-                TrajGRU(input_channel=8, num_filter=64, b_h_w=(opt.batch_size, 42, 42), zoneout=0.0, L=13,
-                        i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
-                        h2h_kernel=(5, 5), h2h_dilate=(1, 1),
-                        act_type=ACT_TYPE),
-                
-                TrajGRU(input_channel=192, num_filter=192, b_h_w=(opt.batch_size, 14, 14), zoneout=0.0, L=13,
-         
-               i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
-                        h2h_kernel=(5, 5), h2h_dilate=(1, 1),
-                        act_type=ACT_TYPE),
-                TrajGRU(input_channel=192, num_filter=192, b_h_w=(opt.batch_size, 7, 7), zoneout=0.0, L=9,
-                        i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
-                        h2h_kernel=(3, 3), h2h_dilate=(1, 1),
-                        act_type=ACT_TYPE)
-            ]
-        ]
-        trajgru_forecaster_params = [
-            [
-                OrderedDict({'deconv1_leaky_1': [192, 192, 4, 2, 1]}),
-                OrderedDict({'deconv2_leaky_1': [192, 64, 5, 3, 1]}),
-                OrderedDict({
-                    'deconv3_leaky_1': [64, 8, 7, 3, 1],
-                    'conv3_leaky_2': [8, 8, 3, 1, 1],
-#                    'conv3_3': [8, 1, 1, 1, 0]
-                    'conv3_3': [8, 3, 1, 1, 0]
-                }),
-            ],
-        
-            [
-                TrajGRU(input_channel=192, num_filter=192, b_h_w=(opt.batch_size, 7, 7), zoneout=0.0, L=13,
-                        i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
-                        h2h_kernel=(3, 3), h2h_dilate=(1, 1),
-                        act_type=ACT_TYPE),
-        
-                TrajGRU(input_channel=192, num_filter=192, b_h_w=(opt.batch_size, 14, 14), zoneout=0.0, L=13,
-                        i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
-                        h2h_kernel=(5, 5), h2h_dilate=(1, 1),
-                        act_type=ACT_TYPE),
-                TrajGRU(input_channel=64, num_filter=64, b_h_w=(opt.batch_size, 42, 42), zoneout=0.0, L=9,
-                        i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
-                        h2h_kernel=(5, 5), h2h_dilate=(1, 1),
-                        act_type=ACT_TYPE)
-            ]
-        ]
-    elif opt.image_size == 200:
-        trajgru_encoder_params = [
-            [
-                OrderedDict({'conv1_leaky_1': [1, 8, 7, 3, 1]}),
-                OrderedDict({'conv2_leaky_1': [32, 96, 5, 3, 1]}),
-                OrderedDict({'conv3_leaky_1': [96, 96, 3, 2, 1]}),
-            ],
-            
-            [
-                TrajGRU(input_channel=8, num_filter=32, b_h_w=(opt.batch_size, 66,66), zoneout=0.0, L=13,
-                        i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
-                        h2h_kernel=(5, 5), h2h_dilate=(1, 1),
-                        act_type=ACT_TYPE),
-                
-                TrajGRU(input_channel=96, num_filter=96, b_h_w=(opt.batch_size, 22, 22), zoneout=0.0, L=13,
-         
-               i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
-                        h2h_kernel=(5, 5), h2h_dilate=(1, 1),
-                        act_type=ACT_TYPE),
-                TrajGRU(input_channel=96, num_filter=96, b_h_w=(opt.batch_size, 11, 11), zoneout=0.0, L=9,
-                        i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
-                        h2h_kernel=(3, 3), h2h_dilate=(1, 1),
-                        act_type=ACT_TYPE)
-            ]
-        ]
-        trajgru_forecaster_params = [
-            [
-                OrderedDict({'deconv1_leaky_1': [96, 96, 4, 2, 1]}),
-                OrderedDict({'deconv2_leaky_1': [96, 32, 5, 3, 1]}),
-                OrderedDict({
-                    'deconv3_leaky_1': [32, 8, 7, 3, 1],
-                    'conv3_leaky_2': [8, 8, 3, 1, 1],
-#                    'conv3_3': [8, 1, 1, 1, 0]
-                    'conv3_3': [8, 3, 1, 1, 0]
-                }),
-            ],
-        
-            [
-                TrajGRU(input_channel=96, num_filter=96, b_h_w=(opt.batch_size, 11, 11), zoneout=0.0, L=13,
-                        i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
-                        h2h_kernel=(3, 3), h2h_dilate=(1, 1),
-                        act_type=ACT_TYPE),
-        
-                TrajGRU(input_channel=96, num_filter=96, b_h_w=(opt.batch_size, 22, 22), zoneout=0.0, L=13,
-                        i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
-                        h2h_kernel=(5, 5), h2h_dilate=(1, 1),
-                        act_type=ACT_TYPE),
-                TrajGRU(input_channel=32, num_filter=32, b_h_w=(opt.batch_size, 66, 66), zoneout=0.0, L=9,
-                        i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
-                        h2h_kernel=(5, 5), h2h_dilate=(1, 1),
-                        act_type=ACT_TYPE)
-            ]
-        ]        
-    else:
-        print("UNKNOWN Size !")
 
     # prepare scaler for data
     if opt.dataset == 'radarJMA':
@@ -262,24 +110,27 @@ if __name__ == '__main__':
                                                    drop_last=True,
                                                    shuffle=False)
         
-        dd = next(iter(train_dataset))
+        #dd = next(iter(train_dataset))
 
         if opt.model_name == 'clstm':
             # convolutional lstm
-            encoder = Encoder(convlstm_encoder_params[0], convlstm_encoder_params[1]).to(device)
-            forecaster = Forecaster(convlstm_forecaster_params[0], convlstm_forecaster_params[1]).to(device)
+            encoder_params,forecaster_params = model_structure_convLSTM(opt.image_size,opt.batch_size)
+            encoder = Encoder(encoder_params[0], encoder_params[1]).to(device)
+            forecaster = Forecaster(forecaster_params[0], forecaster_params[1]).to(device)
             model = EF(encoder, forecaster).to(device)
         elif opt.model_name == 'trajgru':
             # trajGRU model
             from models_trajGRU.model import EF
-            encoder = Encoder(trajgru_encoder_params[0], trajgru_encoder_params[1]).to(device)
-            forecaster = Forecaster(trajgru_forecaster_params[0], trajgru_forecaster_params[1],opt.tdim_use).to(device)
+            encoder_params,forecaster_params = model_structure_trajGRU(opt.image_size,opt.batch_size,opt.model_name)
+            encoder = Encoder(encoder_params[0], encoder_params[1]).to(device)
+            forecaster = Forecaster(forecaster_params[0], forecaster_params[1],opt.tdim_use).to(device)
             model = EF(encoder, forecaster).to(device)
         elif opt.model_name == 'trajgru_el':
             # trajGRU Euler-Lagrange Model
             from models_trajGRU.model_euler_lagrange import EF_el
-            encoder = Encoder(trajgru_encoder_params[0], trajgru_encoder_params[1]).to(device)
-            forecaster = Forecaster(trajgru_forecaster_params[0], trajgru_forecaster_params[1],opt.tdim_use).to(device)
+            encoder_params,forecaster_params = model_structure_trajGRU(opt.image_size,opt.batch_size,opt.model_name)
+            encoder = Encoder(encoder_params[0], encoder_params[1]).to(device)
+            forecaster = Forecaster(forecaster_params[0], forecaster_params[1],opt.tdim_use).to(device)
             model = EF_el(encoder, forecaster, opt.image_size, opt.pc_size, opt.batch_size, opt.model_mode, opt.interp_type).to(device)
     
         if opt.transfer_path != 'None':
@@ -385,8 +236,6 @@ if __name__ == '__main__':
                                                    num_workers=opt.n_threads,
                                                    drop_last=True,
                                                    shuffle=False)
-
-        
         
         # testing for the trained model
         for threshold in opt.eval_threshold:
