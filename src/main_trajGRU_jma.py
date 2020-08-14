@@ -70,6 +70,29 @@ if __name__ == '__main__':
         if opt.data_scaling == 'linear':
             # use identity transformation, since the data is already scaled
             scl = LinearScaler(rmax=1.0)
+
+
+    if opt.model_name == 'clstm':
+        # convolutional lstm
+        encoder_params,forecaster_params = model_structure_convLSTM(opt.image_size,opt.batch_size)
+        encoder = Encoder(encoder_params[0], encoder_params[1]).to(device)
+        forecaster = Forecaster(forecaster_params[0], forecaster_params[1]).to(device)
+        model = EF(encoder, forecaster).to(device)
+    elif opt.model_name == 'trajgru':
+        # trajGRU model
+        from models_trajGRU.model import EF
+        encoder_params,forecaster_params = model_structure_trajGRU(opt.image_size,opt.batch_size,opt.model_name)
+        encoder = Encoder(encoder_params[0], encoder_params[1]).to(device)
+        forecaster = Forecaster(forecaster_params[0], forecaster_params[1],opt.tdim_use).to(device)
+        model = EF(encoder, forecaster).to(device)
+    elif opt.model_name == 'trajgru_el':
+        # trajGRU Euler-Lagrange Model
+        from models_trajGRU.model_euler_lagrange import EF_el
+        encoder_params,forecaster_params = model_structure_trajGRU(opt.image_size,opt.batch_size,opt.model_name)
+        encoder = Encoder(encoder_params[0], encoder_params[1]).to(device)
+        forecaster = Forecaster(forecaster_params[0], forecaster_params[1],opt.tdim_use).to(device)
+        model = EF_el(encoder, forecaster, opt.image_size, opt.pc_size, opt.batch_size, opt.model_mode, opt.interp_type).to(device)
+
         
     if not opt.no_train:
         # loading datasets
@@ -111,27 +134,6 @@ if __name__ == '__main__':
                                                    shuffle=False)
         
         #dd = next(iter(train_dataset))
-
-        if opt.model_name == 'clstm':
-            # convolutional lstm
-            encoder_params,forecaster_params = model_structure_convLSTM(opt.image_size,opt.batch_size)
-            encoder = Encoder(encoder_params[0], encoder_params[1]).to(device)
-            forecaster = Forecaster(forecaster_params[0], forecaster_params[1]).to(device)
-            model = EF(encoder, forecaster).to(device)
-        elif opt.model_name == 'trajgru':
-            # trajGRU model
-            from models_trajGRU.model import EF
-            encoder_params,forecaster_params = model_structure_trajGRU(opt.image_size,opt.batch_size,opt.model_name)
-            encoder = Encoder(encoder_params[0], encoder_params[1]).to(device)
-            forecaster = Forecaster(forecaster_params[0], forecaster_params[1],opt.tdim_use).to(device)
-            model = EF(encoder, forecaster).to(device)
-        elif opt.model_name == 'trajgru_el':
-            # trajGRU Euler-Lagrange Model
-            from models_trajGRU.model_euler_lagrange import EF_el
-            encoder_params,forecaster_params = model_structure_trajGRU(opt.image_size,opt.batch_size,opt.model_name)
-            encoder = Encoder(encoder_params[0], encoder_params[1]).to(device)
-            forecaster = Forecaster(forecaster_params[0], forecaster_params[1],opt.tdim_use).to(device)
-            model = EF_el(encoder, forecaster, opt.image_size, opt.pc_size, opt.batch_size, opt.model_mode, opt.interp_type).to(device)
     
         if opt.transfer_path != 'None':
             # Use pretrained weights for transfer learning
@@ -209,7 +211,7 @@ if __name__ == '__main__':
     if opt.test:
         if opt.no_train:
             #load pretrained model from results directory
-            model_fname = os.path.join(opt.result_path, 'trained_CLSTM.model')
+            model_fname = os.path.join(opt.result_path, 'trained_CLSTM.dict')
             print('loading pretrained model:',model_fname)
             # ###if the model is pickle
             #model_ld = torch.load(model_fname)
@@ -218,9 +220,9 @@ if __name__ == '__main__':
             # tweak
             batch_size_test = 4
             from models_trajGRU.model_euler_lagrange import EF_el
-            model = EF_el(model_ld.encoder, model_ld.forecaster,
-                          opt.image_size, opt.pc_size, batch_size_test, opt.model_mode).to(device)
-            del model_ld
+            model = EF_el(model.encoder, model.forecaster,
+                          opt.image_size, opt.pc_size, batch_size_test, opt.model_mode, opt.interp_type).to(device)
+            #del model_ld
             loss_fn = torch.nn.MSELoss()
 
         # smaller batch size is used, since trajGRU is heavy on memory
