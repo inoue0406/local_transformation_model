@@ -5,8 +5,8 @@ from models_trajGRU.utils import make_layers
 
 import numpy as np
 
-#from src_rev_bilinear.rev_bilinear_interp import RevBilinear
-from nearest_neighbor_interp import nearest_neighbor_interp,nearest_neighbor_interp_kd,nearest_neighbor_interp_fe,nearest_neighbor_interp_fi,set_index_faiss
+from src_rev_bilinear.rev_bilinear_interp import RevBilinear
+#from nearest_neighbor_interp import nearest_neighbor_interp,nearest_neighbor_interp_kd,nearest_neighbor_interp_fe,nearest_neighbor_interp_fi,set_index_faiss
 
 class activation():
 
@@ -148,14 +148,15 @@ class EF_el(nn.Module):
         # mode
         self.mode = mode
         self.interp_type = interp_type
-        # 
-        # set FAISS index
-        # Set Initial Grid (which will be fixed through time progress)
-        X_grd = torch.stack(batch_size*[self.Xgrid]).unsqueeze(1)
-        Y_grd = torch.stack(batch_size*[self.Ygrid]).unsqueeze(1)
-        XY_grd = torch.cat([X_grd,Y_grd],dim=1).cuda()
-        points_grd = XY_grd[0,:,:].reshape(2,image_size*image_size).permute(1,0).detach().cpu().numpy()
-        self.faiss_index = set_index_faiss(points_grd)
+        #
+        if interp_type == "nearest":
+            # set FAISS index
+            # Set Initial Grid (which will be fixed through time progress)
+            X_grd = torch.stack(batch_size*[self.Xgrid]).unsqueeze(1)
+            Y_grd = torch.stack(batch_size*[self.Ygrid]).unsqueeze(1)
+            XY_grd = torch.cat([X_grd,Y_grd],dim=1).cuda()
+            points_grd = XY_grd[0,:,:].reshape(2,image_size*image_size).permute(1,0).detach().cpu().numpy()
+            self.faiss_index = set_index_faiss(points_grd)
 
     def forward(self, input):
         
@@ -198,17 +199,19 @@ class EF_el(nn.Module):
         Y_pc = torch.stack(bsize*[self.Ypc]).unsqueeze(1)
         XY_pc = torch.cat([X_pc,Y_pc],dim=1).cuda()
         XY_pc = XY_pc.clone().reshape(bsize,2,self.npc)
-        #R_pc = R_grd[:,:,::spc,::spc].reshape(bsize,1,npc)
 
         xout = torch.zeros(bsize, tsize, channels, height, width,  requires_grad=True).cuda()
         if self.mode == "check":
-            r_pc_out = torch.zeros(bsize, tsize, channels, npc).cuda()
-            xy_pc_out = torch.zeros(bsize, tsize, 2, npc).cuda()
+            r_pc_out = torch.zeros(bsize, tsize, channels, self.npc).cuda()
+            xy_pc_out = torch.zeros(bsize, tsize, 2, self.npc).cuda()
         xzero = torch.zeros(bsize, channels, height, width,  requires_grad=True).cuda() # ! should I put zero here?
         
         # set initial point cloud value
-        R_pc = grid_to_pc_nearest_id(R_grd[:,:,:,:],XY_pc,XY_grd,self.faiss_index)
-        
+        if self.interp_type == "bilinear":
+            R_pc = R_grd[:,:,:,:].reshape(bsize,1,self.npc)
+        elif self.interp_type == "nearest":
+            R_pc = grid_to_pc_nearest_id(R_grd[:,:,:,:],XY_pc,XY_grd,self.faiss_index)
+                    
         for it in range(tsize):
             # UV has [batch, 2, height width] dimension
             # Interpolate UV to Point Cloud position
@@ -224,6 +227,7 @@ class EF_el(nn.Module):
             print('max_uv',torch.max(UV_pc).cpu().detach().numpy(),'min_uv',torch.min(UV_pc).cpu().detach().numpy())
             # Calc Time Progress
             XY_pc = XY_pc + UV_pc
+            #[test]XY_pc = XY_pc - UV_pc
             XY_pc = torch.clamp(XY_pc,min=0.0,max=1.0) # XY should be in [0,1]
             R_pc = R_pc * C_pc # multiplicative
             R_pc = torch.clamp(R_pc,min=0.0,max=1.0) # R_pc should be in [0,1]

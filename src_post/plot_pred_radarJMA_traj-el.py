@@ -17,6 +17,8 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 
+
+
 # -----------------------------
 # add "src" as import path
 path = os.path.join('../src')
@@ -29,9 +31,10 @@ from colormap_JMA import Colormap_JMA
 
 # trajGRU model
 from collections import OrderedDict
+from models_trajGRU.network_params_trajGRU import model_structure_convLSTM, model_structure_trajGRU
 from models_trajGRU.forecaster import Forecaster
 from models_trajGRU.encoder import Encoder
-from models_trajGRU.model import EF
+from models_trajGRU.model_euler_lagrange import EF_el
 from models_trajGRU.trajGRU import TrajGRU
 from models_trajGRU.convLSTM import ConvLSTM
 device = torch.device("cuda")
@@ -59,14 +62,17 @@ def plot_comp_prediction(data_path,filelist,model_fname,batch_size,tdim_use,
     valid_loader = torch.utils.data.DataLoader(dataset=valid_dataset,
                                                batch_size=batch_size,
                                                shuffle=False)
+    
     # load the saved model
-    model_ld = torch.load(model_fname)
-
-    from models_trajGRU.model_euler_lagrange import EF_el
-    model = EF_el(model_ld.encoder, model_ld.forecaster,
-                  img_size, batch_size, "run",interp_type).to(device)
-    del model_ld
-
+    # model_ld = torch.load(model_fname)
+    # load from state_dict
+    model_name = "trajgru_el"
+    encoder_params,forecaster_params = model_structure_trajGRU(img_size,batch_size,model_name)
+    encoder = Encoder(encoder_params[0], encoder_params[1]).to(device)
+    forecaster = Forecaster(forecaster_params[0], forecaster_params[1],tdim_use).to(device)
+    model = EF_el(encoder, forecaster, img_size, 100, batch_size, 'run', interp_type).to(device)
+    model.load_state_dict(torch.load(model_fname))
+    
     # evaluation mode
     model.eval()
     # activate check mode
@@ -142,8 +148,8 @@ if __name__ == '__main__':
     # params
     batch_size = 4
     tdim_use = 12
-    img_size = 128
-    #img_size = 200
+    #img_size = 128
+    img_size = 200
     interp_type = "nearest"
 
     # read case name from command line
@@ -163,7 +169,7 @@ if __name__ == '__main__':
     elif img_size == 200:
         data_path = '../data/data_kanto/'
     filelist = '../data/valid_simple_JMARadar.csv'
-    model_fname = case + '/trained_CLSTM.model'
+    model_fname = case + '/trained_CLSTM.dict'
     pic_path = case + '/png/'
 
     data_scaling = 'linear'

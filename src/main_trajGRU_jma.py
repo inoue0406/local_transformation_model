@@ -92,7 +92,6 @@ if __name__ == '__main__':
         encoder = Encoder(encoder_params[0], encoder_params[1]).to(device)
         forecaster = Forecaster(forecaster_params[0], forecaster_params[1],opt.tdim_use).to(device)
         model = EF_el(encoder, forecaster, opt.image_size, opt.pc_size, opt.batch_size, opt.model_mode, opt.interp_type).to(device)
-
         
     if not opt.no_train:
         # loading datasets
