@@ -3,7 +3,7 @@
 case="result_20200813_traj_el_faiss_size200_pc100_1step_lr0002_sagemaker"
 
 # running script for Rainfall Prediction with ConvLSTM
-python ../src/main_trajGRU_jma.py --model_name trajgru_el \
+python ../src/main_trajGRU_jma_sagemaker.py --model_name trajgru_el \
        --dataset radarJMA --model_mode run --data_scaling linear\
        --data_path ../data/data_kanto/ --image_size 200 --pc_size 100\
        --valid_data_path ../data/data_kanto/ \

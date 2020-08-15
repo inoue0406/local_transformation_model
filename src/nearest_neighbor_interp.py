@@ -248,6 +248,9 @@ def nearest_neighbor_interp_fe(xy_A_b,xy_B_b,R_B_b):
 def set_index_faiss(points_B):
     # set FAISS index
     # points_B : numpy array with Mx2 dimension
+    
+    #points_B = points_B.contiguous()
+    
     #method = "FlatIP"
     method = "IVF"
     if method == "FlatIP":
