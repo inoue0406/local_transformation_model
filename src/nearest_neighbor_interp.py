@@ -249,7 +249,7 @@ def set_index_faiss(points_B):
     # set FAISS index
     # points_B : numpy array with Mx2 dimension
     
-    #points_B = points_B.contiguous()
+    points_B = np.ascontiguousarray(points_B)
     
     #method = "FlatIP"
     method = "IVF"

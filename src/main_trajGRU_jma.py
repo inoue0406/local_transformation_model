@@ -57,7 +57,7 @@ if __name__ == '__main__':
     modelinfo = open(os.path.join(opt.result_path, 'model_info.txt'),'w')
 
     # prepare scaler for data
-    if opt.dataset == 'radarJMA':
+    if opt.dataset == 'radarJMA' or opt.dataset == 'radarJMA3' :
         if opt.data_scaling == 'linear':
             scl = LinearScaler()
         elif opt.data_scaling == 'root':
@@ -106,6 +106,19 @@ if __name__ == '__main__':
                                             csv_file=opt.valid_path,
                                             tdim_use=opt.tdim_use,
                                             transform=None)
+        if opt.dataset == 'radarJMA3':
+            from jma_pytorch_dataset import *
+            train_dataset = JMARadarDataset3(root_dir=opt.data_path,
+                                            csv_file=opt.train_path,
+                                            tdim_use=opt.tdim_use,
+                                            randinit=True,
+                                            transform=None)
+            
+            valid_dataset = JMARadarDataset3(root_dir=opt.valid_data_path,
+                                            csv_file=opt.valid_path,
+                                            tdim_use=opt.tdim_use,
+                                            randinit=True,
+                                            transform=None)
         elif opt.dataset == 'artfield':
             from artfield_pytorch_dataset import *
             train_dataset = ArtfieldDataset(root_dir=opt.data_path,
@@ -132,7 +145,7 @@ if __name__ == '__main__':
                                                    drop_last=True,
                                                    shuffle=False)
         
-        #dd = next(iter(train_dataset))
+        dd = next(iter(train_dataset))
     
         if opt.transfer_path != 'None':
             # Use pretrained weights for transfer learning
@@ -228,10 +241,20 @@ if __name__ == '__main__':
         #batch_size_test = 4
         #batch_size_test = opt.batch_size
         # prepare loader
-        test_dataset = JMARadarDataset(root_dir=opt.valid_data_path,
-                                        csv_file=opt.test_path,
-                                        tdim_use=opt.tdim_use,
-                                        transform=None)
+        if opt.dataset == 'radarJMA':
+            from jma_pytorch_dataset import *
+            test_dataset = JMARadarDataset(root_dir=opt.valid_data_path,
+                                            csv_file=opt.test_path,
+                                            tdim_use=opt.tdim_use,
+                                            transform=None)
+        if opt.dataset == 'radarJMA3':
+            from jma_pytorch_dataset import *
+            test_dataset = JMARadarDataset3(root_dir=opt.valid_data_path,
+                                            csv_file=opt.test_path,
+                                            tdim_use=opt.tdim_use,
+                                            randinit=False,
+                                            transform=None)
+            
         test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
                                                    batch_size=batch_size_test,
                                                    num_workers=opt.n_threads,
