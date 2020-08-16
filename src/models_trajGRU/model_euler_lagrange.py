@@ -5,8 +5,8 @@ from models_trajGRU.utils import make_layers
 
 import numpy as np
 
-from src_rev_bilinear.rev_bilinear_interp import RevBilinear
-#from nearest_neighbor_interp import nearest_neighbor_interp,nearest_neighbor_interp_kd,nearest_neighbor_interp_fe,nearest_neighbor_interp_fi,set_index_faiss
+#from src_rev_bilinear.rev_bilinear_interp import RevBilinear
+from nearest_neighbor_interp import nearest_neighbor_interp,nearest_neighbor_interp_kd,nearest_neighbor_interp_fe,nearest_neighbor_interp_fi,set_index_faiss
 
 class activation():
 
