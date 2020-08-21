@@ -145,7 +145,7 @@ if __name__ == '__main__':
                                                    drop_last=True,
                                                    shuffle=False)
         
-        dd = next(iter(train_dataset))
+        #dd = next(iter(train_dataset))
     
         if opt.transfer_path != 'None':
             # Use pretrained weights for transfer learning
@@ -254,7 +254,7 @@ if __name__ == '__main__':
                                             tdim_use=opt.tdim_use,
                                             randinit=False,
                                             transform=None)
-            
+                        
         test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
                                                    batch_size=batch_size_test,
                                                    num_workers=opt.n_threads,

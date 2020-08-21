@@ -123,7 +123,7 @@ class JMARadarDataset3(data.Dataset):
             rain_Y = rain_Y[:,:,ix1:ix2,ix1:ix2]
         else:
             rain_X = rain_X[:,:,int(dx-dx/2):int(dx+dx/2),int(dx-dx/2):int(dx+dx/2)]
-            rain_Y = rain_X[:,:,int(dx-dx/2):int(dx+dx/2),int(dx-dx/2):int(dx+dx/2)]
+            rain_Y = rain_Y[:,:,int(dx-dx/2):int(dx+dx/2),int(dx-dx/2):int(dx+dx/2)]
             
         # save
         fnames_past = self.df_fnames.iloc[index].loc['fname']
