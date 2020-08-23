@@ -29,6 +29,9 @@ from models_trajGRU.convLSTM import ConvLSTM
 from models_trajGRU.loss import Weighted_mse_mae
 device = torch.device("cuda")
 
+# data augmentation
+from video_augmentation import RandomRotateVideo, RandomResizeVideo
+
 def count_parameters(model,f):
     for name,p in model.named_parameters():
         f.write("name,"+name+", Trainable, "+str(p.requires_grad)+",#params, "+str(p.numel())+"\n")
@@ -94,6 +97,13 @@ if __name__ == '__main__':
         model = EF_el(encoder, forecaster, opt.image_size, opt.pc_size, opt.batch_size, opt.model_mode, opt.interp_type).to(device)
         
     if not opt.no_train:
+        # prepare transform
+        if opt.aug_rotate > 0.0:
+            Rot = RandomRotateVideo(degrees=opt.aug_rotate)
+            Resize = RandomResizeVideo(factor=opt.aug_resize)
+            composed = transforms.Compose([Rot,Resize])
+        else:
+            composed = None
         # loading datasets
         if opt.dataset == 'radarJMA':
             from jma_pytorch_dataset import *
@@ -109,10 +119,10 @@ if __name__ == '__main__':
         if opt.dataset == 'radarJMA3':
             from jma_pytorch_dataset import *
             train_dataset = JMARadarDataset3(root_dir=opt.data_path,
-                                            csv_file=opt.train_path,
-                                            tdim_use=opt.tdim_use,
-                                            randinit=True,
-                                            transform=None)
+                                             csv_file=opt.train_path,
+                                             tdim_use=opt.tdim_use,
+                                             randinit=True,
+                                             transform=composed)
             
             valid_dataset = JMARadarDataset3(root_dir=opt.valid_data_path,
                                             csv_file=opt.valid_path,

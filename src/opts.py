@@ -31,6 +31,16 @@ def parse_opts():
         type=int,
         help='size of point cloud height and width')
     parser.add_argument(
+        '--aug_rotate',
+        default=0,
+        type=float,
+        help='data augmentation random rotate angle')
+    parser.add_argument(
+        '--aug_resize',
+        default=0,
+        type=float,
+        help='data augmentation random resize magnification ratio (1+aug_resize) times')
+    parser.add_argument(
         '--train_path',
         type=str,
         help='training filelist(csv) path')
