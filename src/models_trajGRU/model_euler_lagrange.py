@@ -107,9 +107,9 @@ def pc_to_grid_nearest(R_pc,XY_pc,XY_grd):
     XY_grd_tmp = XY_grd.reshape(batch,2,height*width).permute(0,2,1).detach()
     XY_pc_tmp = XY_pc.permute(0,2,1).detach()
     #R_grd = nearest_neighbor_interp(XY_grd_tmp,XY_pc_tmp,R_pc)
-    #R_grd = nearest_neighbor_interp_kd(XY_grd_tmp,XY_pc_tmp,R_pc)
+    R_grd = nearest_neighbor_interp_kd(XY_grd_tmp,XY_pc_tmp,R_pc)
     #R_grd = nearest_neighbor_interp_kd(XY_pc_tmp,XY_grd_tmp,R_pc)
-    R_grd = nearest_neighbor_interp_fe(XY_grd_tmp,XY_pc_tmp,R_pc)
+    ###R_grd = nearest_neighbor_interp_fe(XY_grd_tmp,XY_pc_tmp,R_pc)
     #import pdb;pdb.set_trace()
     R_grd = R_grd.reshape(batch,k,height,width)
     return R_grd
@@ -124,9 +124,9 @@ def pc_to_grid_nearest_id(R_pc,XY_pc,XY_grd,index):
     XY_grd_tmp = XY_grd.reshape(batch,2,height*width).permute(0,2,1).detach()
     XY_pc_tmp = XY_pc.permute(0,2,1).detach()
     #R_grd = nearest_neighbor_interp(XY_grd_tmp,XY_pc_tmp,R_pc)
-    #R_grd = nearest_neighbor_interp_kd(XY_grd_tmp,XY_pc_tmp,R_pc)
+    R_grd = nearest_neighbor_interp_kd(XY_grd_tmp,XY_pc_tmp,R_pc)
     #R_grd = nearest_neighbor_interp_kd(XY_pc_tmp,XY_grd_tmp,R_pc)
-    R_grd = nearest_neighbor_interp_fi(XY_grd_tmp,XY_pc_tmp,R_pc,index,"backward")
+    ###R_grd = nearest_neighbor_interp_fi(XY_grd_tmp,XY_pc_tmp,R_pc,index,"backward")
     #import pdb;pdb.set_trace()
     R_grd = R_grd.reshape(batch,k,height,width)
     return R_grd
