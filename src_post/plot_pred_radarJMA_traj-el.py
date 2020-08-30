@@ -115,12 +115,14 @@ def plot_comp_prediction(data_path,filelist,model_fname,batch_size,tdim_use,
                     dtstr = str((id+1)*5)
                     # target
                     plt.subplot(1,2,1)
-                    im = plt.imshow(pic_tg[id,:,:],vmin=0,vmax=50,cmap=cm,origin='lower')
+                    #im = plt.imshow(pic_tg[id,:,:],vmin=0,vmax=50,cmap=cm,origin='lower')
+                    im = plt.imshow(pic_tg[id,:,:].transpose(),vmin=0,vmax=50,cmap=cm,origin='lower')
                     plt.title("true:"+dtstr+"min")
                     plt.grid()
                     # predicted
                     plt.subplot(1,2,2)
-                    im = plt.imshow(pic_pred[id,:,:],vmin=0,vmax=50,cmap=cm,origin='lower')
+                    #im = plt.imshow(pic_pred[id,:,:],vmin=0,vmax=50,cmap=cm,origin='lower')
+                    im = plt.imshow(pic_pred[id,:,:].transpose(),vmin=0,vmax=50,cmap=cm,origin='lower')
                     plt.title("pred:"+dtstr+"min")
                     plt.grid()
                     # color bar

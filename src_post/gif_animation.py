@@ -36,7 +36,7 @@ if __name__ == '__main__':
         ims = []
         fig=plt.figure(figsize=(16, 8))
         plt.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
-        for n in range(12):
+        for n in range(6):
             in_dt = infile.replace('dt00','dt%02d' % n)
             print(infile)
             # read files
