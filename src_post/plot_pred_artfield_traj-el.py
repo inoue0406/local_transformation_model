@@ -27,9 +27,10 @@ from train_valid_epoch import *
 
 # trajGRU model
 from collections import OrderedDict
+from models_trajGRU.network_params_trajGRU import model_structure_convLSTM, model_structure_trajGRU
 from models_trajGRU.forecaster import Forecaster
 from models_trajGRU.encoder import Encoder
-from models_trajGRU.model import EF
+from models_trajGRU.model_euler_lagrange import EF_el
 from models_trajGRU.trajGRU import TrajGRU
 from models_trajGRU.convLSTM import ConvLSTM
 device = torch.device("cuda")
@@ -67,7 +68,7 @@ def plot_point_cloud(rain_pc,xy_pc,title,png_fpath,vmin=0,vmax=1):
 
 # plot comparison of predicted vs ground truth
 def plot_comp_prediction(data_path,filelist,model_fname,batch_size,tdim_use,
-                         pic_path,scl,case,mode='png_whole'):
+                         pic_path,scl,case,img_size,interp_type,mode='png_whole'):
     # create pic save dir
     if not os.path.exists(pic_path):
         os.mkdir(pic_path)
@@ -83,9 +84,14 @@ def plot_comp_prediction(data_path,filelist,model_fname,batch_size,tdim_use,
                                                shuffle=False)
     # load the saved model
     model = torch.load(model_fname)
-    #model = CLSTM_EP(input_channels=1, hidden_channels=12,
-    #                    kernel_size=3).cuda()
-    #model.load_state_dict(torch.load(model_fname))
+    # load from state_dict
+    model_name = "trajgru_el"
+    encoder_params,forecaster_params = model_structure_trajGRU(img_size,batch_size,model_name)
+    encoder = Encoder(encoder_params[0], encoder_params[1]).to(device)
+    forecaster = Forecaster(forecaster_params[0], forecaster_params[1],tdim_use).to(device)
+    model = EF_el(encoder, forecaster, img_size, 100, batch_size, 'run', interp_type).to(device)
+    model.load_state_dict(torch.load(model_fname))
+
     # evaluation mode
     model.eval()
     # activate check mode
@@ -134,6 +140,9 @@ if __name__ == '__main__':
     # params
     batch_size = 10
     tdim_use = 12
+    #img_size = 128
+    img_size = 200
+    interp_type = "nearest"
 
     # read case name from command line
     argvs = sys.argv
@@ -147,9 +156,14 @@ if __name__ == '__main__':
     #case = 'result_20190712_tr_clstm_flatsampled'
     #case = 'result_20190625_clstm_lrdecay07_ep20'
 
+    if img_size == 128:
+        data_path = '../data/data_kanto_resize/'
+    elif img_size == 200:
+        data_path = '../data/data_kanto/'
+        
     data_path = '../data/artificial/uniform/'
     filelist = '../data/artificial_uniform_valid.csv'
-    model_fname = case + '/trained_CLSTM.model'
+    model_fname = case + '/trained_CLSTM.dict'
     pic_path = case + '/png/'
 
     data_scaling = 'linear'
@@ -160,6 +174,6 @@ if __name__ == '__main__':
         scl = LinearScaler(rmax=1.0)
         
     plot_comp_prediction(data_path,filelist,model_fname,batch_size,tdim_use,
-                         pic_path,scl,case,mode='png_ind')
+                         pic_path,scl,case,img_size,interp_type,mode='png_ind')
 
 
