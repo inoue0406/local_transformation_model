@@ -97,6 +97,11 @@ def parse_opts():
         type=str,
         help='loss function MSE or WeightedMSE or MaxMSE or MultiMSE')
     parser.add_argument(
+        '--loss_decay',
+        default='1.0',
+        type=float,
+        help='temporal loss decay coeff')
+    parser.add_argument(
         '--loss_weights',
         default=[1.0,1.0],
         type=float,
