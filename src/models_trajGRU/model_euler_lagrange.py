@@ -181,7 +181,8 @@ class EF_el(nn.Module):
         if self.mode=="velocity":
             # directly return velocity
             print('max_uv',torch.max(UV_grd).cpu().detach().numpy(),'min_uv',torch.min(UV_grd).cpu().detach().numpy())
-            return UV_grd
+            UVC =torch.cat((UV_grd,C_grd),dim=2)
+            return UVC
 
         # rescale UV to [0-1] grid
         UV_grd[:,:,1,:,:] = UV_grd[:,:,1,:,:]/height

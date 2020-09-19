@@ -50,8 +50,18 @@ class ArtfieldDataset(data.Dataset):
             _,_,H,W = vel.shape
             UV = np.zeros((self.tdim_use,2,H,W))
             UV[:,:,:,:] = vel
+            
+            cc = h5file['C'][()].astype(np.float32)
+            cc = cc[None,:,:,:] # add "time" dimension as 1
+            # broadcast along time axis
+            _,_,H,W = cc.shape
+            C = np.zeros((self.tdim_use,1,H,W))
+            C[:,:,:,:] = cc
+
+            UVC = np.concatenate([UV,C],axis=1)
+            
             rain_Y = rain_all[self.tdim_use:(self.tdim_use*2),:,:,:] # use time tdim_use as X 
-            sample = {'past': rain_X, 'future': UV, 'future_val':rain_Y,
+            sample = {'past': rain_X, 'future': UVC, 'future_val':rain_Y,
                       'fnames':fnames}
         elif self.mode == "run":
             rain_Y = rain_all[self.tdim_use:(self.tdim_use*2),:,:,:] # use time tdim_use as X 
