@@ -77,9 +77,10 @@ if __name__ == '__main__':
 
     if opt.model_name == 'clstm':
         # convolutional lstm
-        encoder_params,forecaster_params = model_structure_convLSTM(opt.image_size,opt.batch_size)
+        from models_trajGRU.model import EF
+        encoder_params,forecaster_params = model_structure_convLSTM(opt.image_size,opt.batch_size,opt.model_name)
         encoder = Encoder(encoder_params[0], encoder_params[1]).to(device)
-        forecaster = Forecaster(forecaster_params[0], forecaster_params[1]).to(device)
+        forecaster = Forecaster(forecaster_params[0], forecaster_params[1],opt.tdim_use).to(device)
         model = EF(encoder, forecaster).to(device)
     elif opt.model_name == 'trajgru':
         # trajGRU model

@@ -6,9 +6,16 @@ from models_trajGRU.convLSTM import ConvLSTM
 from models_trajGRU.model import activation
 ACT_TYPE = activation('leaky', negative_slope=0.2, inplace=True)
 
-def model_structure_convLSTM(image_size,batch_size):
+def model_structure_convLSTM(image_size,batch_size,model_name):
     # model structure
     # build model for convlstm
+
+    if model_name == "clstm":
+        # for normal spatio-temporal prediction, set 1
+        num_last_layer = 1
+    elif model_name == "clstm_el":
+        # for Euler-Lagrange model, set 3
+        num_last_layer = 3
     
     if image_size == 128:
         convlstm_encoder_params = [
@@ -27,7 +34,6 @@ def model_structure_convLSTM(image_size,batch_size):
                          kernel_size=3, stride=1, padding=1),
             ]
         ]
-    
         convlstm_forecaster_params = [
             [
                 OrderedDict({'deconv1_leaky_1': [192, 192, 4, 2, 1]}),
@@ -35,7 +41,7 @@ def model_structure_convLSTM(image_size,batch_size):
                 OrderedDict({
                     'deconv3_leaky_1': [64, 8, 7, 3, 1],
                     'conv3_leaky_2': [8, 8, 3, 1, 1],
-                    'conv3_3': [8, 1, 1, 1, 0]
+                    'conv3_3': [8, num_last_layer, 1, 1, 0]
                 }),
             ],
     
@@ -45,6 +51,43 @@ def model_structure_convLSTM(image_size,batch_size):
                 ConvLSTM(input_channel=192, num_filter=192, b_h_w=(batch_size, 14, 14),
                          kernel_size=3, stride=1, padding=1),
                 ConvLSTM(input_channel=64, num_filter=64, b_h_w=(batch_size, 42, 42),
+                         kernel_size=3, stride=1, padding=1),
+            ]
+        ]
+    if image_size == 200:
+        convlstm_encoder_params = [
+            [
+                OrderedDict({'conv1_leaky_1': [1, 8, 7, 3, 1]}),
+                OrderedDict({'conv2_leaky_1': [64, 128, 5, 3, 1]}),
+                OrderedDict({'conv3_leaky_1': [128, 128, 3, 2, 1]}),
+            ],
+    
+            [
+                ConvLSTM(input_channel=8, num_filter=64, b_h_w=(batch_size, 66, 66),
+                         kernel_size=3, stride=1, padding=1),
+                ConvLSTM(input_channel=128, num_filter=128, b_h_w=(batch_size, 22, 22),
+                         kernel_size=3, stride=1, padding=1),
+                ConvLSTM(input_channel=128, num_filter=128, b_h_w=(batch_size, 11, 11),
+                         kernel_size=3, stride=1, padding=1),
+            ]
+        ]
+        convlstm_forecaster_params = [
+            [
+                OrderedDict({'deconv1_leaky_1': [128, 128, 4, 2, 1]}),
+                OrderedDict({'deconv2_leaky_1': [128, 64, 5, 3, 1]}),
+                OrderedDict({
+                    'deconv3_leaky_1': [64, 8, 7, 3, 1],
+                    'conv3_leaky_2': [8, 8, 3, 1, 1],
+                    'conv3_3': [8, num_last_layer, 1, 1, 0]
+                }),
+            ],
+    
+            [
+                ConvLSTM(input_channel=128, num_filter=128, b_h_w=(batch_size, 11, 11),
+                         kernel_size=3, stride=1, padding=1),
+                ConvLSTM(input_channel=128, num_filter=128, b_h_w=(batch_size, 22, 22),
+                         kernel_size=3, stride=1, padding=1),
+                ConvLSTM(input_channel=64, num_filter=64, b_h_w=(batch_size, 66, 66),
                          kernel_size=3, stride=1, padding=1),
             ]
         ]
