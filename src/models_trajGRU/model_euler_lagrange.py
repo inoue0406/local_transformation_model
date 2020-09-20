@@ -6,7 +6,7 @@ from models_trajGRU.utils import make_layers
 import numpy as np
 
 #from src_rev_bilinear.rev_bilinear_interp import RevBilinear
-from nearest_neighbor_interp import nearest_neighbor_interp,nearest_neighbor_interp_kd,nearest_neighbor_interp_fe,nearest_neighbor_interp_fi,set_index_faiss
+#from nearest_neighbor_interp import nearest_neighbor_interp,nearest_neighbor_interp_kd,nearest_neighbor_interp_fe,nearest_neighbor_interp_fi,set_index_faiss
 
 class activation():
 
@@ -56,7 +56,7 @@ def grid_to_pc(R_grd,XY_pc):
     R_pc = R_pc.reshape(B, C, N)
     return R_pc
 
-def grid_to_pc_nearest(R_grd,XY_pc,XY_grd):
+def grid_to_pc_nearest(R_grd,XY_pc,XY_grd,interp_type,interpolator):
     # convert grid to pc
     # R_grd: grid value with [batch,channels,height,width] dim
     # XY_pc: point cloud position with [batch,2,N] dim
@@ -65,13 +65,15 @@ def grid_to_pc_nearest(R_grd,XY_pc,XY_grd):
     XY_grd_tmp = XY_grd.reshape(batch,2,height*width).permute(0,2,1).detach()
     XY_pc_tmp = XY_pc.permute(0,2,1).detach()
     R_grd_tmp = R_grd.reshape(batch,k,height*width)
-    #R_pc = nearest_neighbor_interp(XY_pc_tmp,XY_grd_tmp,R_grd_tmp)
-    #R_pc = nearest_neighbor_interp_kd(XY_pc_tmp,XY_grd_tmp,R_grd_tmp)
-    R_pc = nearest_neighbor_interp_fe(XY_pc_tmp,XY_grd_tmp,R_grd_tmp)
-    #import pdb;pdb.set_trace()
+    if interp_type == "nearest_normal":
+        #R_pc = nearest_neighbor_interp(XY_pc_tmp,XY_grd_tmp,R_grd_tmp)
+        R_pc = interpolator(XY_pc_tmp,XY_grd_tmp,R_grd_tmp)
+    if interp_type == "nearest_kdtree":
+        #R_pc = nearest_neighbor_interp_kd(XY_pc_tmp,XY_grd_tmp,R_grd_tmp)
+        R_pc = interpolator(XY_pc_tmp,XY_grd_tmp,R_grd_tmp)
     return R_pc
 
-def grid_to_pc_nearest_id(R_grd,XY_pc,XY_grd,index):
+def grid_to_pc_nearest_id(R_grd,XY_pc,XY_grd,index,interpolator_fwd):
     # convert grid to pc
     # R_grd: grid value with [batch,channels,height,width] dim
     # XY_pc: point cloud position with [batch,2,N] dim
@@ -80,10 +82,8 @@ def grid_to_pc_nearest_id(R_grd,XY_pc,XY_grd,index):
     XY_grd_tmp = XY_grd.reshape(batch,2,height*width).permute(0,2,1).detach()
     XY_pc_tmp = XY_pc.permute(0,2,1).detach()
     R_grd_tmp = R_grd.reshape(batch,k,height*width)
-    #R_pc = nearest_neighbor_interp(XY_pc_tmp,XY_grd_tmp,R_grd_tmp)
-    #R_pc = nearest_neighbor_interp_kd(XY_pc_tmp,XY_grd_tmp,R_grd_tmp)
-    R_pc = nearest_neighbor_interp_fi(XY_pc_tmp,XY_grd_tmp,R_grd_tmp,index,"forward")
-    #import pdb;pdb.set_trace()
+    #R_pc = nearest_neighbor_interp_fi(XY_pc_tmp,XY_grd_tmp,R_grd_tmp,index,"forward")
+    R_pc = interpolator_fwd(XY_pc_tmp,XY_grd_tmp,R_grd_tmp,index,"forward")
     return R_pc
 
 def pc_to_grid(R_pc,XY_pc,height):
@@ -97,7 +97,7 @@ def pc_to_grid(R_pc,XY_pc,height):
     R_grd = R_grd.permute(0,1,3,2)
     return R_grd
 
-def pc_to_grid_nearest(R_pc,XY_pc,XY_grd):
+def pc_to_grid_nearest(R_pc,XY_pc,XY_grd,interp_type,interpolator):
     # convert pc to grid
     # R_pc: point cloud value with [batch,channels,N] dim
     # XY_pc: point cloud position with [batch,2,N] dim
@@ -106,15 +106,16 @@ def pc_to_grid_nearest(R_pc,XY_pc,XY_grd):
     _,k,_ = R_pc.shape
     XY_grd_tmp = XY_grd.reshape(batch,2,height*width).permute(0,2,1).detach()
     XY_pc_tmp = XY_pc.permute(0,2,1).detach()
-    #R_grd = nearest_neighbor_interp(XY_grd_tmp,XY_pc_tmp,R_pc)
-    R_grd = nearest_neighbor_interp_kd(XY_grd_tmp,XY_pc_tmp,R_pc)
-    #R_grd = nearest_neighbor_interp_kd(XY_pc_tmp,XY_grd_tmp,R_pc)
-    ###R_grd = nearest_neighbor_interp_fe(XY_grd_tmp,XY_pc_tmp,R_pc)
-    #import pdb;pdb.set_trace()
+    if interp_type == "nearest_normal":
+        #R_grd = nearest_neighbor_interp(XY_grd_tmp,XY_pc_tmp,R_pc)
+        R_grd = interpolator(XY_grd_tmp,XY_pc_tmp,R_pc)
+    if interp_type == "nearest_kdtree":
+        #R_grd = nearest_neighbor_interp_kd(XY_grd_tmp,XY_pc_tmp,R_pc)
+        R_grd = interpolator(XY_grd_tmp,XY_pc_tmp,R_pc)
     R_grd = R_grd.reshape(batch,k,height,width)
     return R_grd
 
-def pc_to_grid_nearest_id(R_pc,XY_pc,XY_grd,index):
+def pc_to_grid_nearest_id(R_pc,XY_pc,XY_grd,index,interpolator_back):
     # convert pc to grid
     # R_pc: point cloud value with [batch,channels,N] dim
     # XY_pc: point cloud position with [batch,2,N] dim
@@ -123,11 +124,10 @@ def pc_to_grid_nearest_id(R_pc,XY_pc,XY_grd,index):
     _,k,_ = R_pc.shape
     XY_grd_tmp = XY_grd.reshape(batch,2,height*width).permute(0,2,1).detach()
     XY_pc_tmp = XY_pc.permute(0,2,1).detach()
-    #R_grd = nearest_neighbor_interp(XY_grd_tmp,XY_pc_tmp,R_pc)
-    R_grd = nearest_neighbor_interp_kd(XY_grd_tmp,XY_pc_tmp,R_pc)
-    #R_grd = nearest_neighbor_interp_kd(XY_pc_tmp,XY_grd_tmp,R_pc)
+    #R_grd = nearest_neighbor_interp_kd(XY_grd_tmp,XY_pc_tmp,R_pc)
+    ##R_grd = nearest_neighbor_interp_fe(XY_grd_tmp,XY_pc_tmp,R_pc)
+    R_grd = interpolator_back(XY_grd_tmp,XY_pc_tmp,R_pc)
     ###R_grd = nearest_neighbor_interp_fi(XY_grd_tmp,XY_pc_tmp,R_pc,index,"backward")
-    #import pdb;pdb.set_trace()
     R_grd = R_grd.reshape(batch,k,height,width)
     return R_grd
 
@@ -148,10 +148,20 @@ class EF_el(nn.Module):
         # mode
         self.mode = mode
         self.interp_type = interp_type
-        #
-        if interp_type == "nearest":
+        # import according to interp type
+        if interp_type == "nearest_normal":
+            from nearest_neighbor_interp_normal import nearest_neighbor_interp
+            self.interpolator = nearest_neighbor_interp
+        elif interp_type == "nearest_kdtree":
+            from nearest_neighbor_interp_kdtree import nearest_neighbor_interp_kd
+            self.interpolator = nearest_neighbor_interp_kd
+        elif interp_type == "nearest_faiss":
+            from nearest_neighbor_interp_faiss import nearest_neighbor_interp_fe,nearest_neighbor_interp_fi,set_index_faiss
+            from nearest_neighbor_interp_kdtree import nearest_neighbor_interp_kd
+            self.interpolator_fwd = nearest_neighbor_interp_fi
+            #self.interpolator_back = nearest_neighbor_interp_fe
+            self.interpolator_back = nearest_neighbor_interp_kd
             # set FAISS index
-            # Set Initial Grid (which will be fixed through time progress)
             X_grd = torch.stack(batch_size*[self.Xgrid]).unsqueeze(1)
             Y_grd = torch.stack(batch_size*[self.Ygrid]).unsqueeze(1)
             XY_grd = torch.cat([X_grd,Y_grd],dim=1).cuda()
@@ -210,8 +220,10 @@ class EF_el(nn.Module):
         # set initial point cloud value
         if self.interp_type == "bilinear":
             R_pc = R_grd[:,:,:,:].reshape(bsize,1,self.npc)
-        elif self.interp_type == "nearest":
-            R_pc = grid_to_pc_nearest_id(R_grd[:,:,:,:],XY_pc,XY_grd,self.faiss_index)
+        elif self.interp_type == "nearest_normal" or self.interp_type == "nearest_kdtree":
+            R_pc = grid_to_pc_nearest(R_grd[:,:,:,:],XY_pc,XY_grd,self.interp_type,self.interpolator)
+        elif self.interp_type == "nearest_faiss":
+            R_pc = grid_to_pc_nearest_id(R_grd[:,:,:,:],XY_pc,XY_grd,self.faiss_index,self.interpolator_fwd)
                     
         for it in range(tsize):
             # UV has [batch, 2, height width] dimension
@@ -219,11 +231,12 @@ class EF_el(nn.Module):
             if self.interp_type == "bilinear":
                 UV_pc = grid_to_pc(UV_grd[:,it,:,:,:],XY_pc)
                 C_pc = grid_to_pc(C_grd[:,it,:,:,:],XY_pc)
-            elif self.interp_type == "nearest":
-#                UV_pc = grid_to_pc_nearest(UV_grd[:,it,:,:,:],XY_pc,XY_grd)
-#                C_pc = grid_to_pc_nearest(C_grd[:,it,:,:,:],XY_pc,XY_grd)
-                UV_pc = grid_to_pc_nearest_id(UV_grd[:,it,:,:,:],XY_pc,XY_grd,self.faiss_index)
-                C_pc = grid_to_pc_nearest_id(C_grd[:,it,:,:,:],XY_pc,XY_grd,self.faiss_index)
+            elif self.interp_type == "nearest_normal" or self.interp_type == "nearest_kdtree":
+                UV_pc = grid_to_pc_nearest(UV_grd[:,it,:,:,:],XY_pc,XY_grd,self.interp_type,self.interpolator)
+                C_pc = grid_to_pc_nearest(C_grd[:,it,:,:,:],XY_pc,XY_grd,self.interp_type,self.interpolator)
+            elif self.interp_type == "nearest_faiss":
+                UV_pc = grid_to_pc_nearest_id(UV_grd[:,it,:,:,:],XY_pc,XY_grd,self.faiss_index,self.interpolator_fwd)
+                C_pc = grid_to_pc_nearest_id(C_grd[:,it,:,:,:],XY_pc,XY_grd,self.faiss_index,self.interpolator_fwd)
                 
             print('max_uv',torch.max(UV_pc).cpu().detach().numpy(),'min_uv',torch.min(UV_pc).cpu().detach().numpy())
             # Calc Time Progress
@@ -235,9 +248,10 @@ class EF_el(nn.Module):
             # Interpolate PC to Grid
             if self.interp_type == "bilinear":
                 R_grd = pc_to_grid(R_pc,XY_pc,height)
-            elif self.interp_type == "nearest":
-#                R_grd = pc_to_grid_nearest(R_pc,XY_pc,XY_grd)
-                R_grd = pc_to_grid_nearest_id(R_pc,XY_pc,XY_grd,self.faiss_index)
+            elif self.interp_type == "nearest_normal" or self.interp_type == "nearest_kdtree":
+                R_grd = pc_to_grid_nearest(R_pc,XY_pc,XY_grd,self.interp_type,self.interpolator)
+            elif self.interp_type == "nearest_faiss":
+                R_grd = pc_to_grid_nearest_id(R_pc,XY_pc,XY_grd,self.faiss_index,self.interpolator_back)
 
             xout[:,it,:,:,:] = R_grd
             if self.mode == "check":

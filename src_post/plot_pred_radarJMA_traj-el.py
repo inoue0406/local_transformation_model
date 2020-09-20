@@ -152,17 +152,17 @@ if __name__ == '__main__':
     tdim_use = 12
     #img_size = 128
     img_size = 200
-    interp_type = "nearest"
 
     # read case name from command line
     argvs = sys.argv
     argc = len(argvs)
 
-    if argc != 2:
+    if argc != 3:
         print('Usage: python plot_comp_prediction.py CASENAME')
         quit()
 
     case = argvs[1]
+    interp_type = argvs[2]
     #case = 'result_20190712_tr_clstm_flatsampled'
     #case = 'result_20190625_clstm_lrdecay07_ep20'
 
