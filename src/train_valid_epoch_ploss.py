@@ -37,9 +37,13 @@ def train_epoch(epoch,num_epochs,train_loader,model,loss_fn,optimizer,train_logg
         b,t,c,n = r_pc_out.shape
         target_pc_out = torch.zeros([b,t,c,n]).cuda()
         for tt in range(t):
-            target_pc_out[:,tt,:,:] = grid_to_pc_nearest_id(target[:,tt,:,:,:],xy_pc_out[:,tt,:,:],
-                                                            XY_grd,
-                                                            model.faiss_index, model.interpolator_fwd)
+            if opt.interp_type == "bilinear":
+                target_pc_out[:,tt,:,:] = grid_to_pc(target[:,tt,:,:,:],xy_pc_out[:,tt,:,:])
+            elif opt.interp_type == "nearest_faiss":
+                target_pc_out[:,tt,:,:] = grid_to_pc_nearest_id(target[:,tt,:,:,:],xy_pc_out[:,tt,:,:],
+                                                                XY_grd,
+                                                                model.faiss_index, model.interpolator_fwd)
+                
         # time decay coeff
         x = torch.linspace(0,opt.tdim_loss-1,steps=opt.tdim_loss).cuda()
         rr = (opt.loss_decay)**x
