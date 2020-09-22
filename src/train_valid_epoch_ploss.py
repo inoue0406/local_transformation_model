@@ -12,7 +12,7 @@ from criteria_precip import *
 from tools_mem import *
 
 # for interpolation
-from models_trajGRU.model_euler_lagrange_ploss import grid_to_pc_nearest_id
+from models_trajGRU.model_euler_lagrange_ploss import grid_to_pc,grid_to_pc_nearest_id
 
 # training/validation for one epoch
 
