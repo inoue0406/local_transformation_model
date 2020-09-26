@@ -4,7 +4,7 @@ case="result_20200922_traj_ploss_faiss_size200_pc100_12step_lr0002_MSE_UVC"
 
 # running script for Rainfall Prediction with ConvLSTM
 python ../src/main_trajGRU_jma_ploss.py --model_name trajgru_ploss\
-       --dataset radarJMA --model_mode run --data_scaling linear\
+       --dataset radarJMA --model_mode run --data_scaling linear --no_train\
        --data_path ../data/data_kanto/ --image_size 200 --pc_size 100\
        --valid_data_path ../data/data_kanto/ \
        --train_path ../data/train_simple_JMARadar.csv \

@@ -50,7 +50,8 @@ def train_epoch(epoch,num_epochs,train_loader,model,loss_fn,optimizer,train_logg
         rr = rr.unsqueeze(0).unsqueeze(2).unsqueeze(3)
         rr = rr.repeat(b,1,c,n)
         # use opt.tdim_loss steps
-        loss = loss_fn(r_pc_out[:,0:opt.tdim_loss,:,:]*rr, target_pc_out[:,0:opt.tdim_loss,:,:]*rr)
+        target = target_pc_out[:,0:opt.tdim_loss,:,:].detach()*rr
+        loss = loss_fn(r_pc_out[:,0:opt.tdim_loss,:,:]*rr, target)
         # loss = loss_fn(output, target)
         loss.backward()
         optimizer.step()
@@ -78,7 +79,7 @@ def train_epoch(epoch,num_epochs,train_loader,model,loss_fn,optimizer,train_logg
         'lr': optimizer.param_groups[0]['lr']
     })
     # free gpu memory
-    del input,target,output,loss
+    del input,target,r_pc_out,xy_pc_out,XY_grd,loss
 
 # --------------------------
 # Validation

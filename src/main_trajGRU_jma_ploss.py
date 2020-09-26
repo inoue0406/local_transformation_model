@@ -251,10 +251,12 @@ if __name__ == '__main__':
             # tweak
             model_mode = "eval"
             from models_trajGRU.model_euler_lagrange_ploss import EF_el_ploss
-            model = EF_el(model.encoder, model.forecaster,
+            model = EF_el_ploss(model.encoder, model.forecaster,
                           opt.image_size, opt.pc_size, batch_size_test, model_mode, opt.interp_type).to(device)
             #del model_ld
             loss_fn = torch.nn.MSELoss()
+            
+        model.mode = 'eval'
 
         # smaller batch size is used, since trajGRU is heavy on memory
         #batch_size_test = 4
