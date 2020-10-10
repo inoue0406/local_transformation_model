@@ -244,8 +244,8 @@ class EF_el_ploss(nn.Module):
                 
             print('max_uv',torch.max(UV_pc).cpu().detach().numpy(),'min_uv',torch.min(UV_pc).cpu().detach().numpy())
             # Calc Time Progress
-            XY_pc = XY_pc + UV_pc
-            #[test]XY_pc = XY_pc - UV_pc
+            #[tmp]XY_pc = XY_pc + UV_pc
+            XY_pc = XY_pc - UV_pc
             XY_pc = torch.clamp(XY_pc,min=0.0,max=1.0) # XY should be in [0,1]
             R_pc = R_pc * C_pc # multiplicative
             R_pc = torch.clamp(R_pc,min=0.0,max=1.0) # R_pc should be in [0,1]
