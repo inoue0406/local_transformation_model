@@ -178,7 +178,7 @@ if __name__ == '__main__':
         elif opt.loss_function == 'Weighted_MSE_MAE':
             loss_fn = Weighted_mse_mae(LAMBDA=0.01).to(device)
         elif opt.loss_function == 'WeightedMSE':
-            loss_fn = weighted_MSE_loss
+            loss_fn = weighted_MSE_loss(opt.loss_weights)
         elif opt.loss_function == 'MaxMSE':
             loss_fn = max_MSE_loss(opt.loss_weights)
         elif opt.loss_function == 'MultiMSE':
