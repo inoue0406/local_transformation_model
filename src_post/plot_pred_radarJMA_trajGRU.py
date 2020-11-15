@@ -28,6 +28,7 @@ from colormap_JMA import Colormap_JMA
 
 # trajGRU model
 from collections import OrderedDict
+from models_trajGRU.network_params_trajGRU import model_structure_convLSTM, model_structure_trajGRU
 from models_trajGRU.forecaster import Forecaster
 from models_trajGRU.encoder import Encoder
 from models_trajGRU.model import EF
@@ -44,8 +45,8 @@ def mod_str_interval(inte_str):
     return(inte_str)
 
 # plot comparison of predicted vs ground truth
-def plot_comp_prediction(data_path,filelist,model_fname,batch_size,tdim_use,
-                         df_sampled,pic_path,scl,case,mode='png_whole'):
+def plot_comp_prediction(data_path,filelist,model_name,model_fname,batch_size,tdim_use,
+                         df_sampled,pic_path,scl,case,img_size,mode='png_whole'):
     # create pic save dir
     if not os.path.exists(pic_path):
         os.mkdir(pic_path)
@@ -58,11 +59,24 @@ def plot_comp_prediction(data_path,filelist,model_fname,batch_size,tdim_use,
     valid_loader = torch.utils.data.DataLoader(dataset=valid_dataset,
                                                batch_size=batch_size,
                                                shuffle=False)
+ 
     # load the saved model
-    model = torch.load(model_fname)
-    #model = CLSTM_EP(input_channels=1, hidden_channels=12,
-    #                    kernel_size=3).cuda()
-    #model.load_state_dict(torch.load(model_fname))
+    if model_name == 'clstm':
+        # convolutional lstm
+        from models_trajGRU.model import EF
+        encoder_params,forecaster_params = model_structure_convLSTM(img_size,batch_size,model_name)
+        encoder = Encoder(encoder_params[0], encoder_params[1]).to(device)
+        forecaster = Forecaster(forecaster_params[0], forecaster_params[1],tdim_use).to(device)
+        model = EF(encoder, forecaster).to(device)
+    elif model_name == 'trajgru':
+        # trajGRU model
+        from models_trajGRU.model import EF
+        encoder_params,forecaster_params = model_structure_trajGRU(img_size,batch_size,model_name)
+        encoder = Encoder(encoder_params[0], encoder_params[1]).to(device)
+        forecaster = Forecaster(forecaster_params[0], forecaster_params[1],tdim_use).to(device)
+        model = EF(encoder, forecaster).to(device)
+    # load weights
+    model.load_state_dict(torch.load(model_fname))
     # evaluation mode
     model.eval()
     #
@@ -157,23 +171,28 @@ if __name__ == '__main__':
     # params
     batch_size = 4
     tdim_use = 12
+    #img_size = 128
+    img_size = 200
 
     # read case name from command line
     argvs = sys.argv
     argc = len(argvs)
 
-    if argc != 2:
-        print('Usage: python plot_comp_prediction.py CASENAME')
+    if argc != 3:
+        print('Usage: python plot_comp_prediction.py CASENAME clstm/trajgru')
         quit()
 
     case = argvs[1]
-    #case = 'result_20190712_tr_clstm_flatsampled'
     #case = 'result_20190625_clstm_lrdecay07_ep20'
+
+    model_name = argvs[2]
+    #model_name = 'clstm'
+    #model_name = 'trajgru'
 
     #data_path = '../data/data_kanto_resize/'
     data_path = '../data/data_kanto/'
     filelist = '../data/valid_simple_JMARadar.csv'
-    model_fname = case + '/trained_CLSTM.model'
+    model_fname = case + '/trained_CLSTM.dict'
     pic_path = case + '/png/'
 
     data_scaling = 'linear'
@@ -196,7 +215,7 @@ if __name__ == '__main__':
     print('samples to be plotted')
     print(df_sampled)
     
-    plot_comp_prediction(data_path,filelist,model_fname,batch_size,tdim_use,
-                         df_sampled,pic_path,scl,case,mode='png_ind')
+    plot_comp_prediction(data_path,filelist,model_name,model_fname,batch_size,tdim_use,
+                         df_sampled,pic_path,scl,case,img_size,mode='png_ind')
 
 
