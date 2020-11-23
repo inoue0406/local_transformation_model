@@ -1,4 +1,6 @@
 import csv
+import numpy as np
+import pandas as pd
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
@@ -39,3 +41,19 @@ class Logger(object):
 
         self.logger.writerow(write_values)
         self.log_file.flush()
+
+def log_freq_distr_pytorch(x,fname):
+    # this routine logs the frequency of particular tensor
+    x_np = x.to('cpu').detach().numpy().copy()
+    print("tensor output shape:",x_np.shape)
+
+    # generate histogram
+    hist = np.histogram(x_np,bins=50)
+    hist_df= pd.DataFrame({"value":hist[1][1:],
+                           "count":hist[0]})
+    hist_df.to_csv(fname)
+    import pdb;pdb.set_trace()
+
+
+    
+    
