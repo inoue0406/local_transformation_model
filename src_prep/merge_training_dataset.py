@@ -30,7 +30,7 @@ if __name__ == '__main__':
         print("train_fname=",train_fname)
         df = pd.read_csv(data_root+train_fname)
         # add relative path
-        df_tmp = pd.DataFrame({"fanme":data_dir + "/" + df["fname"],
+        df_tmp = pd.DataFrame({"fname":data_dir + "/" + df["fname"],
                               "fnext":data_dir + "/" + df["fnext"]})
         df_all = df_all.append(df_tmp)
         
