@@ -11,8 +11,6 @@ import sys
 import json
 import time
 
-import pdb
-
 from scaler import *
 from train_valid_epoch import *
 from utils import Logger
@@ -79,24 +77,30 @@ if __name__ == '__main__':
         # convolutional lstm
         from models_trajGRU.model import EF
         encoder_params,forecaster_params = model_structure_convLSTM(opt.image_size,opt.batch_size,opt.model_name)
-        encoder = Encoder(encoder_params[0], encoder_params[1]).to(device)
-        forecaster = Forecaster(forecaster_params[0], forecaster_params[1],opt.tdim_use).to(device)
-        model = EF(encoder, forecaster).to(device)
+        encoder = Encoder(encoder_params[0], encoder_params[1])
+        forecaster = Forecaster(forecaster_params[0], forecaster_params[1],opt.tdim_use)
+        model = EF(encoder, forecaster)
     elif opt.model_name == 'trajgru':
         # trajGRU model
         from models_trajGRU.model import EF
         encoder_params,forecaster_params = model_structure_trajGRU(opt.image_size,opt.batch_size,opt.model_name)
-        encoder = Encoder(encoder_params[0], encoder_params[1]).to(device)
-        forecaster = Forecaster(forecaster_params[0], forecaster_params[1],opt.tdim_use).to(device)
-        model = EF(encoder, forecaster).to(device)
+        encoder = Encoder(encoder_params[0], encoder_params[1])
+        forecaster = Forecaster(forecaster_params[0], forecaster_params[1],opt.tdim_use)
+        model = EF(encoder, forecaster)
     elif opt.model_name == 'trajgru_el':
         # trajGRU Euler-Lagrange Model
         from models_trajGRU.model_euler_lagrange import EF_el
         encoder_params,forecaster_params = model_structure_trajGRU(opt.image_size,opt.batch_size,opt.model_name)
-        encoder = Encoder(encoder_params[0], encoder_params[1]).to(device)
-        forecaster = Forecaster(forecaster_params[0], forecaster_params[1],opt.tdim_use).to(device)
+        encoder = Encoder(encoder_params[0], encoder_params[1])
+        forecaster = Forecaster(forecaster_params[0], forecaster_params[1],opt.tdim_use)
         model = EF_el(encoder, forecaster, opt.image_size, opt.pc_size, opt.batch_size, opt.model_mode, opt.interp_type).to(device)
-        
+
+    # Data Parallel Multi-GPU Run
+    if torch.cuda.device_count() > 1:
+        print("Let's use", torch.cuda.device_count(), "GPUs!")
+        model = torch.nn.DataParallel(model) # make parallel
+    model.to(device)
+    
     if not opt.no_train:
         # prepare transform
         if opt.aug_rotate > 0.0:
