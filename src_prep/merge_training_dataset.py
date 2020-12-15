@@ -12,13 +12,23 @@ if __name__ == '__main__':
 
     # Setting
     data_root = "../data/"
-    data_dirs = ["DWD_RYDL_reduced",
-                 "TAASRAD19",
-                 "data_alljapan"]
-    file_list = ["DWD_RYDL_train_200_reduced.csv",
-                 "TAASRAD19_train_200_reduced.csv",
-                 "train_alljapan_2yrs_JMARadar.csv"]
-    fout = "JMA_DWD_TAASRAD_combined_train.csv"
+    data_dirs = ["data_alljapan_2010",
+                 "data_alljapan_2011",
+                 "data_alljapan_2012",
+                 "data_alljapan_2013",
+                 "data_alljapan_2015",
+                 "data_alljapan_2016",
+                 "data_alljapan_2018",
+                 "data_alljapan_2019"]
+    file_list = ["train_alljapan_2010_JMARadar.csv",
+                 "train_alljapan_2011_JMARadar.csv",
+                 "train_alljapan_2012_JMARadar.csv",
+                 "train_alljapan_2013_JMARadar.csv",
+                 "train_alljapan_2015_JMARadar.csv",
+                 "train_alljapan_2016_JMARadar.csv",
+                 "train_alljapan_2018_JMARadar.csv",
+                 "train_alljapan_2019_JMARadar.csv"]
+    fout = "JMA_8years_combined_train.csv"
 
     # initialize with empty dataframe
     df_all = pd.DataFrame()

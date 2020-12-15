@@ -153,6 +153,7 @@ if __name__ == '__main__':
                                                    num_workers=opt.n_threads,
                                                    drop_last=True,
                                                    shuffle=True)
+#                                                   shuffle=False)
     
         valid_loader = torch.utils.data.DataLoader(dataset=valid_dataset,
                                                    batch_size=opt.batch_size,

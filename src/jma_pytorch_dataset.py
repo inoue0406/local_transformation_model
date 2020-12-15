@@ -45,8 +45,9 @@ class JMARadarDataset(data.Dataset):
         rain_Y = rain_Y[:self.tdim_use,None,:,:] # add "channel" dimension as 1
         h5file.close()
         # save
-        #fnames_past = self.df_fnames.iloc[index].loc['fname']
-        #fnames_future = self.df_fnames.iloc[index].loc['fnext']
+        fnames_past = self.df_fnames.iloc[index].loc['fname']
+        fnames_future = self.df_fnames.iloc[index].loc['fnext']
+        print("filenames for this batch",fnames_past)
         #sample = {'past': rain_X, 'future': rain_Y,
         #          'fnames_past':fnames_past,'fnames_future':fnames_future}
         sample = {'past': rain_X, 'future': rain_Y}
