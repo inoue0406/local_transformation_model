@@ -189,7 +189,7 @@ class EF_el_ploss(nn.Module):
         output = output.permute((1, 0, 2, 3, 4))
         # use first 2 dims as uv
         UV_grd = output[:,:,[0,1],:,:]
-        UV_grd =  UV_grd*5.0
+        UV_grd =  UV_grd*2.5
         # use last 1 dims as coeff
         C_grd = output[:,:,[2],:,:]
         #return output
