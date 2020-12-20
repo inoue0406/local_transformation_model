@@ -153,6 +153,7 @@ if __name__ == '__main__':
                                                    num_workers=opt.n_threads,
                                                    drop_last=True,
                                                    shuffle=True)
+#                                                   shuffle=False)
     
         valid_loader = torch.utils.data.DataLoader(dataset=valid_dataset,
                                                    batch_size=opt.batch_size,
@@ -246,9 +247,9 @@ if __name__ == '__main__':
             # ###if the model is state dict
             model.load_state_dict(torch.load(model_fname))
             # tweak
-            from models_trajGRU.model_euler_lagrange import EF_el
-            model = EF_el(model.encoder, model.forecaster,
-                          opt.image_size, opt.pc_size, batch_size_test, opt.model_mode, opt.interp_type).to(device)
+            #from models_trajGRU.model_euler_lagrange import EF_el
+            #model = EF_el(model.encoder, model.forecaster,
+            #              opt.image_size, opt.pc_size, batch_size_test, opt.model_mode, opt.interp_type).to(device)
             #del model_ld
             loss_fn = torch.nn.MSELoss()
 
