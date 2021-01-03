@@ -90,7 +90,8 @@ if __name__ == '__main__':
     elif opt.model_name == 'trajgru_el':
         # trajGRU Euler-Lagrange Model
         from models_trajGRU.model_euler_lagrange import EF_el
-        encoder_params,forecaster_params = model_structure_trajGRU(opt.image_size,opt.batch_size,opt.model_name)
+        encoder_params,forecaster_params = model_structure_trajGRU(opt.image_size,opt.batch_size,
+                                                                   opt.model_name,opt.num_input_layer)
         encoder = Encoder(encoder_params[0], encoder_params[1])
         forecaster = Forecaster(forecaster_params[0], forecaster_params[1],opt.tdim_use)
         model = EF_el(encoder, forecaster, opt.image_size, opt.pc_size, opt.batch_size, opt.model_mode, opt.interp_type).to(device)
@@ -121,7 +122,19 @@ if __name__ == '__main__':
                                             csv_file=opt.valid_path,
                                             tdim_use=opt.tdim_use,
                                             transform=None)
-        if opt.dataset == 'radarJMA3':
+        elif opt.dataset == 'radarJMA_msavg':
+            from jma_pytorch_dataset import *
+            train_dataset = JMARadarDataset_msavg(root_dir=opt.data_path,
+                                            avg_dir=opt.avg_path,
+                                            csv_file=opt.train_path,
+                                            tdim_use=opt.tdim_use,
+                                            transform=None)
+            valid_dataset = JMARadarDataset_msavg(root_dir=opt.valid_data_path,
+                                            avg_dir=opt.avg_path,
+                                            csv_file=opt.valid_path,
+                                            tdim_use=opt.tdim_use,
+                                            transform=None)
+        elif opt.dataset == 'radarJMA3':
             from jma_pytorch_dataset import *
             train_dataset = JMARadarDataset3(root_dir=opt.data_path,
                                              csv_file=opt.train_path,

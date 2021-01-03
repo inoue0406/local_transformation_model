@@ -124,8 +124,17 @@ def prep_multi_average(infile_root,outfile_root,anno_list,ii,jj):
     
 if __name__ == '__main__':
     year = 2015
-    #year = 2016
 
+    # read case name from command line
+    argvs = sys.argv
+    argc = len(argvs)
+
+    if argc != 3:
+        print('Usage: python plot_comp_prediction.py istart iend')
+        quit()
+    istart = int(argvs[1])
+    iend = int(argvs[2])
+    
     # read
     infile_root = "../data/data_alljapan_averaged/"
     print('input dir:',infile_root)
@@ -139,6 +148,7 @@ if __name__ == '__main__':
     anno_list = pd.read_csv(anno_path)
 
     # prepare grid by grid
-    for n in range(slct_id.shape[0]):
+    #for n in range(slct_id.shape[0]):
+    for n in range(istart,iend):
         ii,jj = slct_id[n,:]
         prep_multi_average(infile_root,outfile_root,anno_list,ii,jj)

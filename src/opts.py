@@ -16,6 +16,10 @@ def parse_opts():
         type=str,
         help='directory path of valid data')
     parser.add_argument(
+        '--avg_path',
+        type=str,
+        help='directory path of averaged fields')
+    parser.add_argument(
         '--data_scaling',
         default='linear',
         type=str,
@@ -163,23 +167,12 @@ def parse_opts():
         default=1,
         type=int,
         help='Manually set random seed')
-    # ConvLSTM Structure
+    # ConvLSTM/TrajGRU Structure
     parser.add_argument(
-        '--hidden_channels',
-        default=12,
+        '--num_input_layer',
+        default=1,
         type=int,
-        help='Number of hidden channels in ConvLSTM.')
-    parser.add_argument(
-        '--kernel_size',
-        default=3,
-        type=int,
-        help='kernel size in ConvLSTM.')
-    parser.add_argument(
-        '--mid_channels',
-        default=[16,32,32,16],
-        type=int,
-        nargs='*',
-        help='number of channels for upsampling / downsampling')
+        help='Number of input layers/channels.')
     
     args = parser.parse_args()
 

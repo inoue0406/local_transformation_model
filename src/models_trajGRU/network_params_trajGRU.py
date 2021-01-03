@@ -94,7 +94,7 @@ def model_structure_convLSTM(image_size,batch_size,model_name):
         
     return convlstm_encoder_params,convlstm_forecaster_params
           
-def model_structure_trajGRU(image_size,batch_size,model_name):
+def model_structure_trajGRU(image_size,batch_size,model_name,num_input_layer=1):
     # model structure
     # parameters for trajGRU
 
@@ -108,7 +108,7 @@ def model_structure_trajGRU(image_size,batch_size,model_name):
     if image_size == 128:
         trajgru_encoder_params = [
             [
-                OrderedDict({'conv1_leaky_1': [1, 8, 7, 3, 1]}),
+                OrderedDict({'conv1_leaky_1': [num_input_layer, 8, 7, 3, 1]}),
                 OrderedDict({'conv2_leaky_1': [64, 192, 5, 3, 1]}),
                 OrderedDict({'conv3_leaky_1': [192, 192, 3, 2, 1]}),
             ],
@@ -160,7 +160,7 @@ def model_structure_trajGRU(image_size,batch_size,model_name):
     elif image_size == 200:
         trajgru_encoder_params = [
             [
-                OrderedDict({'conv1_leaky_1': [1, 8, 7, 3, 1]}),
+                OrderedDict({'conv1_leaky_1': [num_input_layer, 8, 7, 3, 1]}),
                 OrderedDict({'conv2_leaky_1': [32, 96, 5, 3, 1]}),
                 OrderedDict({'conv3_leaky_1': [96, 96, 3, 2, 1]}),
             ],
@@ -198,7 +198,6 @@ def model_structure_trajGRU(image_size,batch_size,model_name):
                         i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
                         h2h_kernel=(3, 3), h2h_dilate=(1, 1),
                         act_type=ACT_TYPE),
-        
                 TrajGRU(input_channel=96, num_filter=96, b_h_w=(batch_size, 22, 22), zoneout=0.0, L=13,
                         i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
                         h2h_kernel=(5, 5), h2h_dilate=(1, 1),
