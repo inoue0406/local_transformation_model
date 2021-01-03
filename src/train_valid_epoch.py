@@ -29,6 +29,7 @@ def train_epoch(epoch,num_epochs,train_loader,model,loss_fn,optimizer,train_logg
         target = Variable(scl.fwd(sample_batched['future'].float())).cuda()
         # Forward + Backward + Optimize
         optimizer.zero_grad()
+        import pdb;pdb.set_trace()
         output = model(input)
         # time decay coeff
         b,t,c,h,w = output.shape

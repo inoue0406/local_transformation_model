@@ -80,15 +80,18 @@ def multi_scale_avg(Vavg,flist,fname):
         print("skipped: there is no record for averaging",basedate)
         return None
     Vmsa_list = []
-    for Nexp in range(Nexp):
+    for Nexp in range(1,Nexp):
         time_avg = range(1,2**Nexp)
-        print("time averaging with hours:",time_avg)
         date_list = [basedate - datetime.timedelta(hours=x) for x in time_avg]
         favg_list = [date.strftime('1havg_2p-jmaradar5_%Y-%m-%d_%H%M'+ijstr) for date in date_list]
         #
         #df_fname = pd.DataFrame(,columns=["fname"])
         intersect = list(set(favg_list) & set(flist))
         id_list = []
+        print("time averaging with hours:",time_avg," intersect size:",len(intersect))
+        if len(intersect)==0:
+            print("skipped: intersect is empty",basedate)
+            return None
         for x in intersect:
             id_list.append(flist.index(x))
         Vaa = Vavg[id_list,:,:]
@@ -112,7 +115,10 @@ def prep_multi_average(infile_root,outfile_root,anno_list,ii,jj):
     anno_list_ij = anno_list.loc[anno_list["fname"].str.contains(ijstr)]
     
     for index, row in anno_list_ij.iterrows():
-        print
+
+        #if not "2p-jmaradar5_2016-09-04_0700utc_3_2.h5" in row["fname"]:
+        #    continue
+        
         Vmsa = multi_scale_avg(Vavg,flist,row["fname"])
         if Vmsa is None:
             continue

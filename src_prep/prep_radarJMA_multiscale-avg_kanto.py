@@ -14,7 +14,7 @@ import datetime
 def load_avg_field(infile_root):
     print("load averaged fields")
     rain_X_list = []
-    files_list = sorted(glob.iglob(infile_root + ".h5"))
+    files_list = sorted(glob.iglob(infile_root + "*.h5"))
     for infile in files_list:
         print("reading:",infile)
         h5file = h5py.File(infile,'r')
@@ -39,15 +39,19 @@ def multi_scale_avg(Vavg,flist,fname):
         print("skipped: there is no record for averaging",basedate)
         return None
     Vmsa_list = []
-    for Nexp in range(Nexp):
+    for Nexp in range(1,Nexp):
         time_avg = range(1,2**Nexp)
         print("time averaging with hours:",time_avg)
         date_list = [basedate - datetime.timedelta(hours=x) for x in time_avg]
-        favg_list = [date.strftime('1havg_2p-jmaradar5_%Y-%m-%d_%H%Mutc.h5') for date in date_list]
+        favg_list = [date.strftime('2p-jmaradar5_%Y-%m-%d_%H%Mutc.h5') for date in date_list]
         #
         #df_fname = pd.DataFrame(,columns=["fname"])
+        #import pdb;pdb.set_trace()
         intersect = list(set(favg_list) & set(flist))
         id_list = []
+        if len(intersect)==0:
+            print("skipped: intersect is empty",basedate)
+            return None
         for x in intersect:
             id_list.append(flist.index(x))
         Vaa = Vavg[id_list,:,:]

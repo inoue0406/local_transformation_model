@@ -58,7 +58,7 @@ if __name__ == '__main__':
     modelinfo = open(os.path.join(opt.result_path, 'model_info.txt'),'w')
 
     # prepare scaler for data
-    if opt.dataset == 'radarJMA' or opt.dataset == 'radarJMA3' :
+    if opt.dataset == 'radarJMA' or opt.dataset == 'radarJMA3' or opt.dataset == 'radarJMA_msavg' :
         if opt.data_scaling == 'linear':
             scl = LinearScaler()
         elif opt.data_scaling == 'root':
@@ -83,7 +83,8 @@ if __name__ == '__main__':
     elif opt.model_name == 'trajgru':
         # trajGRU model
         from models_trajGRU.model import EF
-        encoder_params,forecaster_params = model_structure_trajGRU(opt.image_size,opt.batch_size,opt.model_name)
+        encoder_params,forecaster_params = model_structure_trajGRU(opt.image_size,opt.batch_size,
+                                                                   opt.model_name,opt.num_input_layer)
         encoder = Encoder(encoder_params[0], encoder_params[1])
         forecaster = Forecaster(forecaster_params[0], forecaster_params[1],opt.tdim_use)
         model = EF(encoder, forecaster)
@@ -91,7 +92,7 @@ if __name__ == '__main__':
         # trajGRU Euler-Lagrange Model
         from models_trajGRU.model_euler_lagrange import EF_el
         encoder_params,forecaster_params = model_structure_trajGRU(opt.image_size,opt.batch_size,
-                                                                   opt.model_name,opt.num_input_layer)
+                                                                   opt.model_name)
         encoder = Encoder(encoder_params[0], encoder_params[1])
         forecaster = Forecaster(forecaster_params[0], forecaster_params[1],opt.tdim_use)
         model = EF_el(encoder, forecaster, opt.image_size, opt.pc_size, opt.batch_size, opt.model_mode, opt.interp_type).to(device)
@@ -174,7 +175,7 @@ if __name__ == '__main__':
                                                    drop_last=True,
                                                    shuffle=False)
         
-        #dd = next(iter(train_dataset))
+        dd = next(iter(train_dataset))
     
         if opt.transfer_path != 'None':
             # Use pretrained weights for transfer learning

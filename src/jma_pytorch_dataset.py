@@ -96,6 +96,7 @@ class JMARadarDataset_msavg(data.Dataset):
         h5file = h5py.File(h5_name_X,'r')
         rain_avg = h5file['Ravg'][()].astype(np.float32)
         rain_avg = np.maximum(rain_avg,0) # replace negative value with 0
+        rain_avg = np.stack(self.tdim_use*[rain_avg]) # duplicate constant field along time axis
         h5file.close()
         # concatenate alon channel axis
         rain_Xplus = np.concatenate([rain_X,rain_avg],axis=1)
@@ -106,6 +107,8 @@ class JMARadarDataset_msavg(data.Dataset):
         sample = {'past': rain_Xplus, 'future': rain_Y,
                   'fnames_past':fnames_past,'fnames_future':fnames_future}
         #sample = {'past': rain_Xplus, 'future': rain_Y}
+
+        import pdb;pdb.set_trace()
 
         if self.transform:
             sample = self.transform(sample)
@@ -181,7 +184,7 @@ class JMARadarDataset3(data.Dataset):
         else:
             rain_X = rain_X[:,:,int(dx-dx/2):int(dx+dx/2),int(dx-dx/2):int(dx+dx/2)]
             rain_Y = rain_Y[:,:,int(dx-dx/2):int(dx+dx/2),int(dx-dx/2):int(dx+dx/2)]
-            
+
         # save
         fnames_past = self.df_fnames.iloc[index].loc['fname']
         fnames_future1 = self.df_fnames.iloc[index].loc['fname1']
