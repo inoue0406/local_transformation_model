@@ -13,11 +13,13 @@ if __name__ == '__main__':
     # modify training/test file list according to multi-scale data availability
 
     # directory of averaged dataset
-    outfile_root = '../data/data_alljapan_multiavg/'
+    #outfile_root = '../data/data_alljapan_multiavg/'
+    outfile_root = '../data/data_kanto_multiavg/'
     print('output dir:',outfile_root)
 
     # original list of data
-    anno_path = "../data/train_alljapan_2yrs_JMARadar.csv"
+    #anno_path = "../data/train_alljapan_2yrs_JMARadar.csv"
+    anno_path = "../data/valid_simple_JMARadar.csv"
     anno_list = pd.read_csv(anno_path)
     
     # output
@@ -35,13 +37,11 @@ if __name__ == '__main__':
             id_found.append(index)
         else:
             print("NOT found",row["fname"])
-        if index > 1000:
-            break
+        #if index > 1000:
+        #    break
     
     anno_list_slct = anno_list.iloc[id_found]
     print("size of original dataset",len(anno_list))
     print("size of processed dataset",len(anno_list_slct))
 
     anno_list_slct.to_csv(output_path,index=False)
-
-    import pdb;pdb.set_trace()

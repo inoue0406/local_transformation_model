@@ -20,6 +20,10 @@ def parse_opts():
         type=str,
         help='directory path of averaged fields')
     parser.add_argument(
+        '--test_avg_path',
+        type=str,
+        help='directory path of averaged fields')
+    parser.add_argument(
         '--data_scaling',
         default='linear',
         type=str,

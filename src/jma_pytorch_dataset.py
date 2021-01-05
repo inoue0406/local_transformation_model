@@ -47,7 +47,7 @@ class JMARadarDataset(data.Dataset):
         # save
         fnames_past = self.df_fnames.iloc[index].loc['fname']
         fnames_future = self.df_fnames.iloc[index].loc['fnext']
-        print("filenames for this batch",fnames_past)
+        #print("filenames for this batch",fnames_past)
         #sample = {'past': rain_X, 'future': rain_Y,
         #          'fnames_past':fnames_past,'fnames_future':fnames_future}
         sample = {'past': rain_X, 'future': rain_Y}
@@ -103,12 +103,10 @@ class JMARadarDataset_msavg(data.Dataset):
         # save
         fnames_past = self.df_fnames.iloc[index].loc['fname']
         fnames_future = self.df_fnames.iloc[index].loc['fnext']
-        print("filenames for this batch",fnames_past)
+        #print("filenames for this batch",fnames_past)
         sample = {'past': rain_Xplus, 'future': rain_Y,
                   'fnames_past':fnames_past,'fnames_future':fnames_future}
         #sample = {'past': rain_Xplus, 'future': rain_Y}
-
-        import pdb;pdb.set_trace()
 
         if self.transform:
             sample = self.transform(sample)

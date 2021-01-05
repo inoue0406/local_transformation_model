@@ -277,7 +277,14 @@ if __name__ == '__main__':
                                             csv_file=opt.test_path,
                                             tdim_use=opt.tdim_use,
                                             transform=None)
-        if opt.dataset == 'radarJMA3':
+        elif opt.dataset == 'radarJMA_msavg':
+            from jma_pytorch_dataset import *
+            test_dataset = JMARadarDataset_msavg(root_dir=opt.valid_data_path,
+                                            avg_dir=opt.test_avg_path,
+                                            csv_file=opt.test_path,
+                                            tdim_use=opt.tdim_use,
+                                            transform=None)
+        elif opt.dataset == 'radarJMA3':
             from jma_pytorch_dataset import *
             test_dataset = JMARadarDataset3(root_dir=opt.valid_data_path,
                                             csv_file=opt.test_path,

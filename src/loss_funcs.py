@@ -6,7 +6,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
 class weighted_MSE_loss(nn.Module):
     # custom loss function weighing heavy rains
     def __init__(self, weights):
@@ -28,21 +27,6 @@ class weighted_MSE_loss(nn.Module):
                self.weights[2] * torch.mean((mask_30*(output - target))**2)+ \
                self.weights[3] * torch.mean((mask_XX*(output - target))**2)
         return loss
-
-def weighted_MSE_loss(output, target):
-    # custom loss function weighing heavy rains
-    # First introduced by Shi et. al. (2017)
-    mask_02 = (target<2.0).float()
-    mask_05 = ((target<5.0) * (target>=2.0)).float()
-    mask_10 = ((target<10.0) * (target>=5.0)).float()
-    mask_30 = ((target<30.0) * (target>=10.0)).float()
-    mask_XX = (target>=30.0).float()
-    loss = 1.0 * torch.mean((mask_02*(output - target))**2)+ \
-           2.0 * torch.mean((mask_05*(output - target))**2)+ \
-           5.0 * torch.mean((mask_10*(output - target))**2)+ \
-           10.0 * torch.mean((mask_30*(output - target))**2)+ \
-           30.0 * torch.mean((mask_XX*(output - target))**2)
-    return loss
 
 class max_MSE_loss(nn.Module):
     # custom loss function weighing heavy rains   
