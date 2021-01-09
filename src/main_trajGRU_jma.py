@@ -84,7 +84,8 @@ if __name__ == '__main__':
         # trajGRU model
         from models_trajGRU.model import EF
         encoder_params,forecaster_params = model_structure_trajGRU(opt.image_size,opt.batch_size,
-                                                                   opt.model_name,opt.num_input_layer)
+                                                                   opt.model_name,
+                                                                   opt.num_filters,opt.num_input_layer)
         encoder = Encoder(encoder_params[0], encoder_params[1])
         forecaster = Forecaster(forecaster_params[0], forecaster_params[1],opt.tdim_use)
         model = EF(encoder, forecaster)
