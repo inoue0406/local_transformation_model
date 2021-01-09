@@ -56,6 +56,64 @@ class JMARadarDataset(data.Dataset):
             sample = self.transform(sample)
 
         return sample
+    
+class JMARadarDataset_msavg(data.Dataset):
+    def __init__(self,csv_file,root_dir,avg_dir,tdim_use,num_input_layer,transform=None):
+        """
+        Args:
+            csv_file (string): Path to the csv file with annotations.
+            root_dir (string): Directory with all the radar data.
+            tdim_use: Size of temporal data to be used
+                       ex) tdim_use=3 means last 3 of X and first 3 of Y are used
+            transform (callable, optional): Optional transform to be applied on a sample.
+        """
+        self.df_fnames = pd.read_csv(csv_file)
+        self.root_dir = root_dir
+        self.avg_dir = avg_dir
+        self.tdim_use = tdim_use
+        self.use_avg_layer = num_input_layer - 1
+        self.transform = transform
+        
+    def __len__(self):
+        return len(self.df_fnames)
+        
+    def __getitem__(self, index):
+        # read X
+        h5_name_X = os.path.join(self.root_dir, self.df_fnames.iloc[index].loc['fname'])
+        h5file = h5py.File(h5_name_X,'r')
+        rain_X = h5file['R'][()].astype(np.float32)
+        rain_X = np.maximum(rain_X,0) # replace negative value with 0
+        rain_X = rain_X[-self.tdim_use:,None,:,:] # add "channel" dimension as 1
+        h5file.close()
+        # read Y
+        h5_name_Y = os.path.join(self.root_dir, self.df_fnames.iloc[index].loc['fnext'])
+        h5file = h5py.File(h5_name_Y,'r')
+        rain_Y = h5file['R'][()].astype(np.float32)
+        rain_Y = np.maximum(rain_Y,0) # replace negative value with 0
+        rain_Y = rain_Y[:self.tdim_use,None,:,:] # add "channel" dimension as 1
+        h5file.close()
+        # read Averaged Field
+        h5_name_X = os.path.join(self.avg_dir, self.df_fnames.iloc[index].loc['fname'])
+        h5file = h5py.File(h5_name_X,'r')
+        rain_avg = h5file['Ravg'][()].astype(np.float32)
+        rain_avg = np.maximum(rain_avg,0) # replace negative value with 0
+        rain_avg = np.stack(self.tdim_use*[rain_avg]) # duplicate constant field along time axis
+        rain_avg = rain_avg[:,-self.use_avg_layer:,:,:] # use last k layers as input
+        h5file.close()
+        # concatenate alon channel axis
+        rain_Xplus = np.concatenate([rain_X,rain_avg],axis=1)
+        # save
+        fnames_past = self.df_fnames.iloc[index].loc['fname']
+        fnames_future = self.df_fnames.iloc[index].loc['fnext']
+        #print("filenames for this batch",fnames_past)
+        sample = {'past': rain_Xplus, 'future': rain_Y,
+                  'fnames_past':fnames_past,'fnames_future':fnames_future}
+        #sample = {'past': rain_Xplus, 'future': rain_Y}
+
+        if self.transform:
+            sample = self.transform(sample)
+
+        return sample
 
 class JMARadarDataset3(data.Dataset):
     def __init__(self,csv_file,root_dir,tdim_use=12,transform=None,randinit=True):
@@ -126,7 +184,7 @@ class JMARadarDataset3(data.Dataset):
         else:
             rain_X = rain_X[:,:,int(dx-dx/2):int(dx+dx/2),int(dx-dx/2):int(dx+dx/2)]
             rain_Y = rain_Y[:,:,int(dx-dx/2):int(dx+dx/2),int(dx-dx/2):int(dx+dx/2)]
-            
+
         # save
         fnames_past = self.df_fnames.iloc[index].loc['fname']
         fnames_future1 = self.df_fnames.iloc[index].loc['fname1']
