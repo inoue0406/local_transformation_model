@@ -129,11 +129,13 @@ if __name__ == '__main__':
                                             avg_dir=opt.avg_path,
                                             csv_file=opt.train_path,
                                             tdim_use=opt.tdim_use,
+                                            num_input_layer=opt.num_input_layer,
                                             transform=None)
             valid_dataset = JMARadarDataset_msavg(root_dir=opt.valid_data_path,
                                             avg_dir=opt.avg_path,
                                             csv_file=opt.valid_path,
                                             tdim_use=opt.tdim_use,
+                                            num_input_layer=opt.num_input_layer,
                                             transform=None)
         elif opt.dataset == 'radarJMA3':
             from jma_pytorch_dataset import *
@@ -283,6 +285,7 @@ if __name__ == '__main__':
                                             avg_dir=opt.test_avg_path,
                                             csv_file=opt.test_path,
                                             tdim_use=opt.tdim_use,
+                                            num_input_layer=opt.num_input_layer,
                                             transform=None)
         elif opt.dataset == 'radarJMA3':
             from jma_pytorch_dataset import *

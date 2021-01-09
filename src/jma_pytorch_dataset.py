@@ -58,7 +58,7 @@ class JMARadarDataset(data.Dataset):
         return sample
     
 class JMARadarDataset_msavg(data.Dataset):
-    def __init__(self,csv_file,root_dir,avg_dir,tdim_use=12,transform=None):
+    def __init__(self,csv_file,root_dir,avg_dir,tdim_use,num_input_layer,transform=None):
         """
         Args:
             csv_file (string): Path to the csv file with annotations.
@@ -71,6 +71,7 @@ class JMARadarDataset_msavg(data.Dataset):
         self.root_dir = root_dir
         self.avg_dir = avg_dir
         self.tdim_use = tdim_use
+        self.use_avg_layer = num_input_layer - 1
         self.transform = transform
         
     def __len__(self):
@@ -97,6 +98,7 @@ class JMARadarDataset_msavg(data.Dataset):
         rain_avg = h5file['Ravg'][()].astype(np.float32)
         rain_avg = np.maximum(rain_avg,0) # replace negative value with 0
         rain_avg = np.stack(self.tdim_use*[rain_avg]) # duplicate constant field along time axis
+        rain_avg = rain_avg[:,-self.use_avg_layer:,:,:] # use last k layers as input
         h5file.close()
         # concatenate alon channel axis
         rain_Xplus = np.concatenate([rain_X,rain_avg],axis=1)
