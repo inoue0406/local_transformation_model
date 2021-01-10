@@ -177,6 +177,12 @@ def parse_opts():
         default=1,
         type=int,
         help='Number of input layers/channels.')
+    parser.add_argument(
+        '--num_filters',
+        default=[8,32,96,96],
+        type=int,
+        nargs='*',
+        help='Number of convolution filters.')
     
     args = parser.parse_args()
 

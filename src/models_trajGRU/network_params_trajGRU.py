@@ -94,9 +94,12 @@ def model_structure_convLSTM(image_size,batch_size,model_name):
         
     return convlstm_encoder_params,convlstm_forecaster_params
           
-def model_structure_trajGRU(image_size,batch_size,model_name,num_input_layer=1):
+def model_structure_trajGRU(image_size,batch_size,model_name,num_filters,num_input_layer=1):
     # model structure
     # parameters for trajGRU
+
+    nf1,nf2,nf3,nf4 = num_filters
+    print("number of filters in trajGRU:",num_filters)
 
     if model_name == "trajgru":
         # for normal spatio-temporal prediction, set 1
@@ -108,23 +111,23 @@ def model_structure_trajGRU(image_size,batch_size,model_name,num_input_layer=1):
     if image_size == 128:
         trajgru_encoder_params = [
             [
-                OrderedDict({'conv1_leaky_1': [num_input_layer, 8, 7, 3, 1]}),
-                OrderedDict({'conv2_leaky_1': [64, 192, 5, 3, 1]}),
-                OrderedDict({'conv3_leaky_1': [192, 192, 3, 2, 1]}),
+                OrderedDict({'conv1_leaky_1': [num_input_layer, nf1, 7, 3, 1]}),
+                OrderedDict({'conv2_leaky_1': [nf2, nf3, 5, 3, 1]}),
+                OrderedDict({'conv3_leaky_1': [nf3, nf4, 3, 2, 1]}),
             ],
             
             [
-                TrajGRU(input_channel=8, num_filter=64, b_h_w=(batch_size, 42, 42), zoneout=0.0, L=13,
+                TrajGRU(input_channel=nf1, num_filter=nf2, b_h_w=(batch_size, 42, 42), zoneout=0.0, L=13,
                         i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
                         h2h_kernel=(5, 5), h2h_dilate=(1, 1),
                         act_type=ACT_TYPE),
                 
-                TrajGRU(input_channel=192, num_filter=192, b_h_w=(batch_size, 14, 14), zoneout=0.0, L=13,
+                TrajGRU(input_channel=nf3, num_filter=nf3, b_h_w=(batch_size, 14, 14), zoneout=0.0, L=13,
          
                i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
                         h2h_kernel=(5, 5), h2h_dilate=(1, 1),
                         act_type=ACT_TYPE),
-                TrajGRU(input_channel=192, num_filter=192, b_h_w=(batch_size, 7, 7), zoneout=0.0, L=9,
+                TrajGRU(input_channel=nf4, num_filter=nf4, b_h_w=(batch_size, 7, 7), zoneout=0.0, L=9,
                         i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
                         h2h_kernel=(3, 3), h2h_dilate=(1, 1),
                         act_type=ACT_TYPE)
@@ -132,26 +135,26 @@ def model_structure_trajGRU(image_size,batch_size,model_name,num_input_layer=1):
         ]
         trajgru_forecaster_params = [
             [
-                OrderedDict({'deconv1_leaky_1': [192, 192, 4, 2, 1]}),
-                OrderedDict({'deconv2_leaky_1': [192, 64, 5, 3, 1]}),
+                OrderedDict({'deconv1_leaky_1': [nf4, nf3, 4, 2, 1]}),
+                OrderedDict({'deconv2_leaky_1': [nf3, nf2, 5, 3, 1]}),
                 OrderedDict({
-                    'deconv3_leaky_1': [64, 8, 7, 3, 1],
-                    'conv3_leaky_2': [8, 8, 3, 1, 1],
-                    'conv3_3': [8, num_last_layer, 1, 1, 0]
+                    'deconv3_leaky_1': [nf2, nf1, 7, 3, 1],
+                    'conv3_leaky_2': [nf1, nf1, 3, 1, 1],
+                    'conv3_3': [nf1, num_last_layer, 1, 1, 0]
                 }),
             ],
         
             [
-                TrajGRU(input_channel=192, num_filter=192, b_h_w=(batch_size, 7, 7), zoneout=0.0, L=13,
+                TrajGRU(input_channel=nf4, num_filter=nf4, b_h_w=(batch_size, 7, 7), zoneout=0.0, L=13,
                         i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
                         h2h_kernel=(3, 3), h2h_dilate=(1, 1),
                         act_type=ACT_TYPE),
         
-                TrajGRU(input_channel=192, num_filter=192, b_h_w=(batch_size, 14, 14), zoneout=0.0, L=13,
+                TrajGRU(input_channel=nf3, num_filter=nf3, b_h_w=(batch_size, 14, 14), zoneout=0.0, L=13,
                         i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
                         h2h_kernel=(5, 5), h2h_dilate=(1, 1),
                         act_type=ACT_TYPE),
-                TrajGRU(input_channel=64, num_filter=64, b_h_w=(batch_size, 42, 42), zoneout=0.0, L=9,
+                TrajGRU(input_channel=nf2, num_filter=nf2, b_h_w=(batch_size, 42, 42), zoneout=0.0, L=9,
                         i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
                         h2h_kernel=(5, 5), h2h_dilate=(1, 1),
                         act_type=ACT_TYPE)
@@ -160,23 +163,23 @@ def model_structure_trajGRU(image_size,batch_size,model_name,num_input_layer=1):
     elif image_size == 200:
         trajgru_encoder_params = [
             [
-                OrderedDict({'conv1_leaky_1': [num_input_layer, 8, 7, 3, 1]}),
-                OrderedDict({'conv2_leaky_1': [32, 96, 5, 3, 1]}),
-                OrderedDict({'conv3_leaky_1': [96, 96, 3, 2, 1]}),
+                OrderedDict({'conv1_leaky_1': [num_input_layer, nf1, 7, 3, 1]}),
+                OrderedDict({'conv2_leaky_1': [nf2, nf3, 5, 3, 1]}),
+                OrderedDict({'conv3_leaky_1': [nf3, nf4, 3, 2, 1]}),
             ],
             
             [
-                TrajGRU(input_channel=8, num_filter=32, b_h_w=(batch_size, 66,66), zoneout=0.0, L=13,
+                TrajGRU(input_channel=nf1, num_filter=nf2, b_h_w=(batch_size, 66,66), zoneout=0.0, L=13,
                         i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
                         h2h_kernel=(5, 5), h2h_dilate=(1, 1),
                         act_type=ACT_TYPE),
                 
-                TrajGRU(input_channel=96, num_filter=96, b_h_w=(batch_size, 22, 22), zoneout=0.0, L=13,
+                TrajGRU(input_channel=nf3, num_filter=nf3, b_h_w=(batch_size, 22, 22), zoneout=0.0, L=13,
          
                i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
                         h2h_kernel=(5, 5), h2h_dilate=(1, 1),
                         act_type=ACT_TYPE),
-                TrajGRU(input_channel=96, num_filter=96, b_h_w=(batch_size, 11, 11), zoneout=0.0, L=9,
+                TrajGRU(input_channel=nf4, num_filter=nf4, b_h_w=(batch_size, 11, 11), zoneout=0.0, L=9,
                         i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
                         h2h_kernel=(3, 3), h2h_dilate=(1, 1),
                         act_type=ACT_TYPE)
@@ -184,25 +187,25 @@ def model_structure_trajGRU(image_size,batch_size,model_name,num_input_layer=1):
         ]
         trajgru_forecaster_params = [
             [
-                OrderedDict({'deconv1_leaky_1': [96, 96, 4, 2, 1]}),
-                OrderedDict({'deconv2_leaky_1': [96, 32, 5, 3, 1]}),
+                OrderedDict({'deconv1_leaky_1': [nf4, nf3, 4, 2, 1]}),
+                OrderedDict({'deconv2_leaky_1': [nf3, nf2, 5, 3, 1]}),
                 OrderedDict({
-                    'deconv3_leaky_1': [32, 8, 7, 3, 1],
-                    'conv3_leaky_2': [8, 8, 3, 1, 1],
-                    'conv3_3': [8, num_last_layer, 1, 1, 0]
+                    'deconv3_leaky_1': [nf2, nf1, 7, 3, 1],
+                    'conv3_leaky_2': [nf1, nf1, 3, 1, 1],
+                    'conv3_3': [nf1, num_last_layer, 1, 1, 0]
                 }),
             ],
         
             [
-                TrajGRU(input_channel=96, num_filter=96, b_h_w=(batch_size, 11, 11), zoneout=0.0, L=13,
+                TrajGRU(input_channel=nf4, num_filter=nf4, b_h_w=(batch_size, 11, 11), zoneout=0.0, L=13,
                         i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
                         h2h_kernel=(3, 3), h2h_dilate=(1, 1),
                         act_type=ACT_TYPE),
-                TrajGRU(input_channel=96, num_filter=96, b_h_w=(batch_size, 22, 22), zoneout=0.0, L=13,
+                TrajGRU(input_channel=nf3, num_filter=nf3, b_h_w=(batch_size, 22, 22), zoneout=0.0, L=13,
                         i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
                         h2h_kernel=(5, 5), h2h_dilate=(1, 1),
                         act_type=ACT_TYPE),
-                TrajGRU(input_channel=32, num_filter=32, b_h_w=(batch_size, 66, 66), zoneout=0.0, L=9,
+                TrajGRU(input_channel=nf2, num_filter=nf2, b_h_w=(batch_size, 66, 66), zoneout=0.0, L=9,
                         i2h_kernel=(3, 3), i2h_stride=(1, 1), i2h_pad=(1, 1),
                         h2h_kernel=(5, 5), h2h_dilate=(1, 1),
                         act_type=ACT_TYPE)

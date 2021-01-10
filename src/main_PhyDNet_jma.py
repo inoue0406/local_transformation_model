@@ -12,19 +12,13 @@ import json
 import time
 
 from scaler import *
-from train_valid_epoch import *
+from train_valid_epoch_phydnet import *
 from utils import Logger
 from opts import parse_opts
 from loss_funcs import *
 
-# trajGRU model
-from collections import OrderedDict
-from models_trajGRU.network_params_trajGRU import model_structure_convLSTM, model_structure_trajGRU
-from models_trajGRU.forecaster import Forecaster
-from models_trajGRU.encoder import Encoder
-from models_trajGRU.trajGRU import TrajGRU
-from models_trajGRU.convLSTM import ConvLSTM
-from models_trajGRU.loss import Weighted_mse_mae
+# PhyDNet model
+from models_PhyDNet.models import ConvLSTM, PhyCell, EncoderRNN
 device = torch.device("cuda")
 
 # data augmentation
@@ -72,31 +66,11 @@ if __name__ == '__main__':
             # use identity transformation, since the data is already scaled
             scl = LinearScaler(rmax=1.0)
 
-
-    if opt.model_name == 'clstm':
-        # convolutional lstm
-        from models_trajGRU.model import EF
-        encoder_params,forecaster_params = model_structure_convLSTM(opt.image_size,opt.batch_size,opt.model_name)
-        encoder = Encoder(encoder_params[0], encoder_params[1])
-        forecaster = Forecaster(forecaster_params[0], forecaster_params[1],opt.tdim_use)
-        model = EF(encoder, forecaster)
-    elif opt.model_name == 'trajgru':
-        # trajGRU model
-        from models_trajGRU.model import EF
-        encoder_params,forecaster_params = model_structure_trajGRU(opt.image_size,opt.batch_size,
-                                                                   opt.model_name,
-                                                                   opt.num_filters,opt.num_input_layer)
-        encoder = Encoder(encoder_params[0], encoder_params[1])
-        forecaster = Forecaster(forecaster_params[0], forecaster_params[1],opt.tdim_use)
-        model = EF(encoder, forecaster)
-    elif opt.model_name == 'trajgru_el':
-        # trajGRU Euler-Lagrange Model
-        from models_trajGRU.model_euler_lagrange import EF_el
-        encoder_params,forecaster_params = model_structure_trajGRU(opt.image_size,opt.batch_size,
-                                                                   opt.model_name)
-        encoder = Encoder(encoder_params[0], encoder_params[1])
-        forecaster = Forecaster(forecaster_params[0], forecaster_params[1],opt.tdim_use)
-        model = EF_el(encoder, forecaster, opt.image_size, opt.pc_size, opt.batch_size, opt.model_mode, opt.interp_type).to(device)
+    if opt.model_name == 'PhyDNet':
+        print ("PhyDNet model selected")
+        phycell =  PhyCell(input_shape=(25,25), input_dim=64, F_hidden_dims=[49], n_layers=1, kernel_size=(7,7), device=device) 
+        convlstm =  ConvLSTM(input_shape=(25,25), input_dim=64, hidden_dims=[128,128,64], n_layers=3, kernel_size=(3,3), device=device)
+        model = EncoderRNN(phycell, convlstm, device)
 
     # Data Parallel Multi-GPU Run
     if torch.cuda.device_count() > 1:
@@ -119,22 +93,12 @@ if __name__ == '__main__':
                                             csv_file=opt.train_path,
                                             tdim_use=opt.tdim_use,
                                             transform=None)
-            
-            valid_dataset = JMARadarDataset(root_dir=opt.valid_data_path,
-                                            csv_file=opt.valid_path,
-                                            tdim_use=opt.tdim_use,
-                                            transform=None)
+
         elif opt.dataset == 'radarJMA_msavg':
             from jma_pytorch_dataset import *
             train_dataset = JMARadarDataset_msavg(root_dir=opt.data_path,
                                             avg_dir=opt.avg_path,
                                             csv_file=opt.train_path,
-                                            tdim_use=opt.tdim_use,
-                                            num_input_layer=opt.num_input_layer,
-                                            transform=None)
-            valid_dataset = JMARadarDataset_msavg(root_dir=opt.valid_data_path,
-                                            avg_dir=opt.avg_path,
-                                            csv_file=opt.valid_path,
                                             tdim_use=opt.tdim_use,
                                             num_input_layer=opt.num_input_layer,
                                             transform=None)
@@ -146,21 +110,10 @@ if __name__ == '__main__':
                                              randinit=True,
                                              transform=composed)
             
-            valid_dataset = JMARadarDataset3(root_dir=opt.valid_data_path,
-                                            csv_file=opt.valid_path,
-                                            tdim_use=opt.tdim_use,
-                                            randinit=True,
-                                            transform=None)
         elif opt.dataset == 'artfield':
             from artfield_pytorch_dataset import *
             train_dataset = ArtfieldDataset(root_dir=opt.data_path,
                                             csv_file=opt.train_path,
-                                            mode=opt.model_mode,
-                                            tdim_use=opt.tdim_use,
-                                            transform=None)
-            
-            valid_dataset = ArtfieldDataset(root_dir=opt.valid_data_path,
-                                            csv_file=opt.valid_path,
                                             mode=opt.model_mode,
                                             tdim_use=opt.tdim_use,
                                             transform=None)
@@ -172,13 +125,7 @@ if __name__ == '__main__':
                                                    shuffle=True)
 #                                                   shuffle=False)
     
-        valid_loader = torch.utils.data.DataLoader(dataset=valid_dataset,
-                                                   batch_size=opt.batch_size,
-                                                   num_workers=opt.n_threads,
-                                                   drop_last=True,
-                                                   shuffle=False)
-        
-        dd = next(iter(train_dataset))
+        #dd = next(iter(train_dataset))
     
         if opt.transfer_path != 'None':
             # Use pretrained weights for transfer learning
@@ -214,6 +161,7 @@ if __name__ == '__main__':
             
         # learning rate scheduler
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=opt.lr_decay)
+        #scheduler_enc = ReduceLROnPlateau(encoder_optimizer, mode='min', patience=3,factor=0.5,verbose=True)
             
         # Prep logger
         train_logger = Logger(
@@ -222,9 +170,6 @@ if __name__ == '__main__':
         train_batch_logger = Logger(
             os.path.join(opt.result_path, 'train_batch.log'),
             ['epoch', 'batch', 'loss', 'lr'])
-        valid_logger = Logger(
-            os.path.join(opt.result_path, 'valid.log'),
-            ['epoch', 'loss'])
     
         # training 
         for epoch in range(1,opt.n_epochs+1):
@@ -233,8 +178,6 @@ if __name__ == '__main__':
             # training & validation
             train_epoch(epoch,opt.n_epochs,train_loader,model,loss_fn,optimizer,
                         train_logger,train_batch_logger,opt,scl)
-            #valid_epoch(epoch,opt.n_epochs,valid_loader,model,loss_fn,
-            #            valid_logger,opt,scl)
 
             if epoch % opt.checkpoint == 0:
                 # save the trained model for every checkpoint
