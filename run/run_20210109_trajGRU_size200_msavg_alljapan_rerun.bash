@@ -18,7 +18,7 @@ python ../src/main_trajGRU_jma.py --model_name trajgru\
        --test_avg_path ../data/data_kanto_multiavg/\
        --result_path $case --tdim_use 12 --tdim_loss 12 --learning_rate 0.0002 --lr_decay 0.9\
        --num_input_layer 11\
-       --batch_size 30 --n_epochs 20 --n_threads 10 --checkpoint 10 \
+       --batch_size 20 --n_epochs 20 --n_threads 10 --checkpoint 10 \
        --loss_function MSE\
        --optimizer adam \
 # post plot
