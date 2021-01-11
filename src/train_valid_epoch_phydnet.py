@@ -14,20 +14,11 @@ from criteria_precip import *
 # for debug
 from tools_mem import *
 
-# training/validation for one epoch
-
-constraints = torch.zeros((49,7,7)).cuda()
-ind = 0
-for i in range(0,7):
-    for j in range(0,7):
-        constraints[ind,i,j] = 1
-        ind +=1    
-
 # --------------------------
 # Training
 # --------------------------
 
-def train_epoch(epoch,num_epochs,train_loader,encoder,loss_fn,optimizer,train_logger,train_batch_logger,opt,scl):
+def train_epoch(epoch,num_epochs,train_loader,encoder,loss_fn,optimizer,train_logger,train_batch_logger,opt,scl,constraints):
     
     print('train at epoch {}'.format(epoch))
 

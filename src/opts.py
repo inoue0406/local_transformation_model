@@ -171,6 +171,11 @@ def parse_opts():
         default=1,
         type=int,
         help='Manually set random seed')
+    parser.add_argument(
+        '--const_type',
+        default="full",
+        type=str,
+        help='Constraint type for phydnet')
     # ConvLSTM/TrajGRU Structure
     parser.add_argument(
         '--num_input_layer',

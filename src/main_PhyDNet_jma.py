@@ -30,7 +30,21 @@ def count_parameters(model,f):
     Nparam = sum(p.numel() for p in model.parameters())
     Ntrain = sum(p.numel() for p in model.parameters() if p.requires_grad)
     f.write("Number of params:"+str(Nparam)+", Trainable parameters:"+str(Ntrain)+"\n")
-    
+
+def calc_constraints(const_type):
+    constraints = torch.zeros((49,7,7)).cuda()
+    ind = 0
+    for i in range(0,7):
+        for j in range(0,7):
+            constraints[ind,i,j] = 1
+            ind +=1
+    if const_type == "no_diffusion":
+        print ("remove 2nd order differential term")
+        constraints[2,:,:] = 0
+        constraints[8,:,:] = 0
+        constraints[14,:,:] = 0
+    return constraints
+        
 if __name__ == '__main__':
    
     # parse command-line options
@@ -170,6 +184,10 @@ if __name__ == '__main__':
         train_batch_logger = Logger(
             os.path.join(opt.result_path, 'train_batch.log'),
             ['epoch', 'batch', 'loss', 'lr'])
+
+        #const_type = "full"
+        #const_type = "no_diffusion"
+        constraints = calc_constraints(opt.const_type)
     
         # training 
         for epoch in range(1,opt.n_epochs+1):
@@ -177,7 +195,7 @@ if __name__ == '__main__':
             scheduler.step()
             # training & validation
             train_epoch(epoch,opt.n_epochs,train_loader,model,loss_fn,optimizer,
-                        train_logger,train_batch_logger,opt,scl)
+                        train_logger,train_batch_logger,opt,scl,constraints)
 
             if epoch % opt.checkpoint == 0:
                 # save the trained model for every checkpoint
