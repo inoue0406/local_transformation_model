@@ -108,7 +108,7 @@ def train_epoch(epoch,num_epochs,train_loader,encoder,loss_fn,optimizer,train_lo
 # Test
 # --------------------------
 
-def test_CLSTM_EP(test_loader,model,loss_fn,opt,scl,threshold):
+def test_epoch(test_loader,encoder,loss_fn,opt,scl,threshold):
     print('Testing for the model')
     
     # initialize
@@ -123,19 +123,35 @@ def test_CLSTM_EP(test_loader,model,loss_fn,opt,scl,threshold):
     FSS_t_all = np.empty((0,opt.tdim_use),float)
 
     # evaluation mode
-    model.eval()
+    encoder.eval()
 
     for i_batch, sample_batched in enumerate(test_loader):
-        input = Variable(scl.fwd(sample_batched['past'].float())).cuda()
-        target = Variable(scl.fwd(sample_batched['future'].float())).cuda()
+        input_tensor = Variable(scl.fwd(sample_batched['past'].float())).cuda()
+        target_tensor = Variable(scl.fwd(sample_batched['future'].float())).cuda()
+
+        # prediction
+        input_length = opt.tdim_use
+        target_length = opt.tdim_use
+
+        for ei in range(input_length-1):
+            encoder_output, encoder_hidden, _,_,_  = encoder(input_tensor[:,ei,:,:,:], (ei==0))
+
+        decoder_input = input_tensor[:,-1,:,:,:] # first decoder input= last image of input sequence
+        predictions = []
+
+        for di in range(target_length):
+            decoder_output, decoder_hidden, output_image,_,_ = encoder(decoder_input, False, False)
+            decoder_input = output_image
+            predictions.append(output_image)
+
+        predictions =  torch.stack(predictions,dim=1) # for MM: [batch_size, time, channels, H, W]
         
         # Forward
-        output = model(input)
-        loss = loss_fn(output, target)
+        loss = loss_fn(predictions, target_tensor)
         
         # apply evaluation metric
-        Xtrue = scl.inv(target.data.cpu().numpy())
-        Xmodel = scl.inv(output.data.cpu().numpy())
+        Xtrue = scl.inv(target_tensor.data.cpu().numpy())
+        Xmodel = scl.inv(predictions.data.cpu().numpy())
         SumSE,hit,miss,falarm,m_xy,m_xx,m_yy,MaxSE = StatRainfall(Xtrue,Xmodel,
                                                                   th=threshold)
         FSS_t = FSS_for_tensor(Xtrue,Xmodel,th=threshold,win=10)
@@ -172,5 +188,5 @@ def test_CLSTM_EP(test_loader,model,loss_fn,opt,scl,threshold):
     df.to_csv(os.path.join(opt.result_path,
                            'test_evaluation_predtime_%.2f.csv' % threshold), float_format='%.3f')
     # free gpu memory
-    del input,target,output,loss
+    del input_tensor,target_tensor,predictions,loss
     

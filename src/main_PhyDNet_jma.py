@@ -247,7 +247,7 @@ if __name__ == '__main__':
         
         # testing for the trained model
         for threshold in opt.eval_threshold:
-            test_CLSTM_EP(test_loader,model,loss_fn,opt,scl,threshold)
+            test_epoch(test_loader,model,loss_fn,opt,scl,threshold)
 
     # output elapsed time
     logfile.write('End time: '+time.ctime()+'\n')
