@@ -262,6 +262,8 @@ class EncoderRNN(torch.nn.Module):
         
         self.phycell = phycell.to(device)
         self.convlstm = convlstm.to(device)
+        # tmp no convlstm
+        self.flag_noconv = True
         
     def forward(self, input, first_timestep=False, decoding=False):
         if decoding:  # input=None in decoding phase
@@ -280,6 +282,10 @@ class EncoderRNN(torch.nn.Module):
         out_recon = torch.sigmoid(self.image_cnn_dec([output_conv,skip]))
 
         concat = output1[-1]+output2[-1]
+        if self.flag_noconv:
+            concat = output1[-1]
+        else:
+            concat = output1[-1]+output2[-1]
         output_image = torch.sigmoid( self.image_cnn_dec([concat,skip]) )
         #return out_phys, hidden1, output_image, out_phys, out_conv
         return out_phys, hidden1, output_image, out_phys, out_conv, out_recon

@@ -61,14 +61,27 @@ def plot_comp_prediction(data_path,filelist,model_name,model_fname,batch_size,td
         convlstm =  ConvLSTM(input_shape=(25,25), input_dim=64, hidden_dims=[128,128,64], n_layers=3, kernel_size=(3,3), device=device)
         encoder = EncoderRNN(phycell, convlstm, device)
     # load weights
-    encoder.load_state_dict(torch.load(model_fname))
-    # evaluation mode
-    encoder.eval()
+    state_dict = torch.load(model_fname)
+    state_dict["phycell.cell_list.0.F.conv1.bias"][:] = 0
+    state_dict["phycell.cell_list.0.F.conv1.weight"][:,:,:,:] = 0
+    state_dict["phycell.cell_list.0.F.conv2.bias"][:] = 0
+    state_dict["phycell.cell_list.0.F.conv2.weight"][:,:,:,:] = 0
+    state_dict["phycell.cell_list.0.convgate.bias"][:] = 0
+    state_dict["phycell.cell_list.0.convgate.weight"][:,:,:,:] = 0
+    
+    state_dict["convlstm.cell_list.0.conv.weight"][:,:,:,:] = 0
+    state_dict["convlstm.cell_list.0.conv.bias"][:] = 0
+    state_dict["convlstm.cell_list.1.conv.weight"][:,:,:,:] = 0
+    state_dict["convlstm.cell_list.1.conv.bias"][:] = 0
+    state_dict["convlstm.cell_list.2.conv.weight"][:,:,:,:] = 0
+    state_dict["convlstm.cell_list.2.conv.bias"][:] = 0
+    
+    encoder.load_state_dict(state_dict)
 
     # tmp force 2nd order to zero
     #encoder.phycell.cell_list[0].F.conv1.weight[2,:,:,:]=0.0
     #encoder.phycell.cell_list[0].F.conv1.weight[8,:,:,:]=0.0
-    #encoder.phycell.cell_list[0].F.conv1.weight[14,:,:,:]=0.
+    #encoder.phycell.cell_list[0].F.conv1.weight[14,:,:,:]=0.0
     
     # tmp force even order to zero
     #for i in range(1,49):
@@ -77,8 +90,28 @@ def plot_comp_prediction(data_path,filelist,model_name,model_fname,batch_size,td
     #        encoder.phycell.cell_list[0].F.conv1.weight[i,:,:,:]=0.0
     
     # tmp everything to zero
-    #for i in range(0,49):
-    #    encoder.phycell.cell_list[0].F.conv1.weight[i,:,:,:]=0.0
+    #for i in range(49):
+    #    encoder.phycell.cell_list[0].F.conv1.bias[i]=0.0
+    #    encoder.phycell.cell_list[0].F.conv1.weight[:,i,:,:]=0.0
+    #    encoder.phycell.cell_list[0].F.conv2.bias[i]=0.0
+    #    encoder.phycell.cell_list[0].F.conv2.weight[i,:,:,:]=0.0
+    #encoder.phycell.cell_list[0].F.conv1.bias[:]=0.0
+    #encoder.phycell.cell_list[0].F.conv1.weight[:,:,:,:]=0.0
+    #encoder.phycell.cell_list[0].F.conv2.bias[:]=0.0
+    #encoder.phycell.cell_list[0].F.conv2.weight[:,:,:,:]=0.0
+    #
+    #encoder.phycell.cell_list[0].convgate.weight[:,:,:,:] = 0.0
+    #encoder.phycell.cell_list[0].convgate.bias[:] = 0.0
+    #
+    import pdb;pdb.set_trace() 
+    #encoder.convlstm.cell_list[0].conv.weight[:,:,:,:] = 0.0
+    #encoder.convlstm.cell_list[0].conv.bias[:] = 0.0
+    #encoder.convlstm.cell_list[1].conv.weight[:,:,:,:] = 0.0
+    #encoder.convlstm.cell_list[1].conv.bias[:] = 0.0
+    #encoder.convlstm.cell_list[2].conv.weight[:,:,:,:] = 0.0
+    #encoder.convlstm.cell_list[2].conv.bias[:] = 0.0
+    # evaluation mode
+    encoder.eval()
         
     for i_batch, sample_batched in enumerate(valid_loader):
         fnames = sample_batched['fnames_future']
