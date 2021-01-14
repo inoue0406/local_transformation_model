@@ -35,8 +35,11 @@ def train_epoch(epoch,num_epochs,train_loader,encoder,loss_fn,optimizer,train_lo
         optimizer.zero_grad()
 
         for ei in range(opt.tdim_use-1):
-            encoder_output, encoder_hidden, output_image,_,_ = encoder(input_tensor[:,ei,:,:,:], (ei==0) )
-            loss += loss_fn(output_image,input_tensor[:,ei+1,:,:,:])
+            #encoder_output, encoder_hidden, output_image,_,_ = encoder(input_tensor[:,ei,:,:,:], (ei==0) )
+            # add reconstruction loss
+            encoder_output, encoder_hidden, output_image,_,_,output_recon = encoder(input_tensor[:,ei,:,:,:], (ei==0) )
+            #loss += loss_fn(output_image,input_tensor[:,ei+1,:,:,:])
+            loss += loss_fn(output_image,input_tensor[:,ei+1,:,:,:]) + loss_fn(output_recon,input_tensor[:,ei+1,:,:,:])
     
         decoder_input = input_tensor[:,-1,:,:,:] # first decoder input = last image of input sequence
         
