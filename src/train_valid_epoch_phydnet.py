@@ -71,7 +71,6 @@ def train_epoch(epoch,num_epochs,train_loader,encoder,loss_fn,optimizer,train_lo
             m  = m.float()  
             loss += loss_fn(m, constraints) # constrains is a precomputed matrix   
 
-        import pdb;pdb.set_trace()
         # Forward + Backward + Optimize
         loss.backward()
         optimizer.step()
