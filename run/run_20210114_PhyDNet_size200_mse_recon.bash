@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=1
 
 case="result_20210114_PhyDNet_size200_mse_recon_lr0002"
 
@@ -12,12 +12,12 @@ python ../src/main_PhyDNet_jma.py --model_name PhyDNet\
        --train_path ../data/train_simple_JMARadar.csv \
        --valid_path ../data/valid_simple_JMARadar.csv \
        --test --eval_threshold 0.5 10 20 --test_path ../data/valid_simple_JMARadar.csv \
-       --result_path $case --tdim_use 12 --tdim_loss 12 --learning_rate 0.0002 --lr_decay 0.9\
+       --result_path $case --tdim_use 12 --tdim_loss 12 --learning_rate 0.00002 --lr_decay 0.9\
        --batch_size 6 --n_epochs 20 --n_threads 4 --checkpoint 10 \
+       --const_type full\
        --loss_function MSE\
-       --optimizer adam \
+       --optimizer adam
 
 # post plot
-python ../src_post/plot_pred_radarJMA_PhyDNet.py $case phydnet
-#python ../src_post/plot_comp_prediction_trajgru.py $case
-python ../src_post/gif_animation.py $case
+#python ../src_post/plot_pred_radarJMA_PhyDNet.py $case phydnet
+#python ../src_post/gif_animation.py $case
