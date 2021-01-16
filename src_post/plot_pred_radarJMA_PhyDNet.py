@@ -62,19 +62,19 @@ def plot_comp_prediction(data_path,filelist,model_name,model_fname,batch_size,td
         encoder = EncoderRNN(phycell, convlstm, device)
     # load weights
     state_dict = torch.load(model_fname)
-    state_dict["phycell.cell_list.0.F.conv1.bias"][:] = 0
-    state_dict["phycell.cell_list.0.F.conv1.weight"][:,:,:,:] = 0
-    state_dict["phycell.cell_list.0.F.conv2.bias"][:] = 0
-    state_dict["phycell.cell_list.0.F.conv2.weight"][:,:,:,:] = 0
-    state_dict["phycell.cell_list.0.convgate.bias"][:] = 0
-    state_dict["phycell.cell_list.0.convgate.weight"][:,:,:,:] = 0
-    
-    state_dict["convlstm.cell_list.0.conv.weight"][:,:,:,:] = 0
-    state_dict["convlstm.cell_list.0.conv.bias"][:] = 0
-    state_dict["convlstm.cell_list.1.conv.weight"][:,:,:,:] = 0
-    state_dict["convlstm.cell_list.1.conv.bias"][:] = 0
-    state_dict["convlstm.cell_list.2.conv.weight"][:,:,:,:] = 0
-    state_dict["convlstm.cell_list.2.conv.bias"][:] = 0
+    #state_dict["phycell.cell_list.0.F.conv1.bias"][:] = 0
+    #state_dict["phycell.cell_list.0.F.conv1.weight"][:,:,:,:] = 0
+    #state_dict["phycell.cell_list.0.F.conv2.bias"][:] = 0
+    #state_dict["phycell.cell_list.0.F.conv2.weight"][:,:,:,:] = 0
+    #state_dict["phycell.cell_list.0.convgate.bias"][:] = 0
+    #state_dict["phycell.cell_list.0.convgate.weight"][:,:,:,:] = 0
+    #
+    #state_dict["convlstm.cell_list.0.conv.weight"][:,:,:,:] = 0
+    #state_dict["convlstm.cell_list.0.conv.bias"][:] = 0
+    #state_dict["convlstm.cell_list.1.conv.weight"][:,:,:,:] = 0
+    #state_dict["convlstm.cell_list.1.conv.bias"][:] = 0
+    #state_dict["convlstm.cell_list.2.conv.weight"][:,:,:,:] = 0
+    #state_dict["convlstm.cell_list.2.conv.bias"][:] = 0
     
     encoder.load_state_dict(state_dict)
 
@@ -84,10 +84,10 @@ def plot_comp_prediction(data_path,filelist,model_name,model_fname,batch_size,td
     #encoder.phycell.cell_list[0].F.conv1.weight[14,:,:,:]=0.0
     
     # tmp force even order to zero
-    #for i in range(1,49):
-    #    if i % 2 == 0:
-    #        print("remove i=",i)
-    #        encoder.phycell.cell_list[0].F.conv1.weight[i,:,:,:]=0.0
+    for i in range(1,49):
+        if i % 2 == 0:
+            print("remove i=",i)
+            encoder.phycell.cell_list[0].F.conv1.weight[i,:,:,:]=0.0
     
     # tmp everything to zero
     #for i in range(49):
@@ -103,7 +103,7 @@ def plot_comp_prediction(data_path,filelist,model_name,model_fname,batch_size,td
     #encoder.phycell.cell_list[0].convgate.weight[:,:,:,:] = 0.0
     #encoder.phycell.cell_list[0].convgate.bias[:] = 0.0
     #
-    import pdb;pdb.set_trace() 
+    #import pdb;pdb.set_trace() 
     #encoder.convlstm.cell_list[0].conv.weight[:,:,:,:] = 0.0
     #encoder.convlstm.cell_list[0].conv.bias[:] = 0.0
     #encoder.convlstm.cell_list[1].conv.weight[:,:,:,:] = 0.0
@@ -128,13 +128,13 @@ def plot_comp_prediction(data_path,filelist,model_name,model_fname,batch_size,td
         target_length = tdim_use
 
         for ei in range(input_length-1):
-            encoder_output, encoder_hidden, _,_,_  = encoder(input_tensor[:,ei,:,:,:], (ei==0))
+            encoder_output, encoder_hidden, _,_,_,_  = encoder(input_tensor[:,ei,:,:,:], (ei==0))
 
         decoder_input = input_tensor[:,-1,:,:,:] # first decoder input= last image of input sequence
         predictions = []
 
         for di in range(target_length):
-            decoder_output, decoder_hidden, output_image,_,_ = encoder(decoder_input, False, False)
+            decoder_output, decoder_hidden, output_image,_,_,_ = encoder(decoder_input, False, False)
             decoder_input = output_image
             predictions.append(output_image)
 

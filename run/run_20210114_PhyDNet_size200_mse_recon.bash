@@ -5,7 +5,7 @@ export CUDA_VISIBLE_DEVICES=0
 case="result_20210114_PhyDNet_size200_mse_recon_lr0002"
 
 # running script for Rainfall Prediction with ConvLSTM
-python ../src/main_PhyDNet_jma.py --model_name PhyDNet\
+python ../src/main_PhyDNet_jma.py --model_name PhyDNet --no_train\
        --dataset radarJMA --model_mode run --data_scaling linear\
        --data_path ../data/data_kanto/ --image_size 200\
        --valid_data_path ../data/data_kanto/ \

@@ -130,13 +130,13 @@ def test_epoch(test_loader,encoder,loss_fn,opt,scl,threshold):
         target_length = opt.tdim_use
 
         for ei in range(input_length-1):
-            encoder_output, encoder_hidden, _,_,_  = encoder(input_tensor[:,ei,:,:,:], (ei==0))
+            encoder_output, encoder_hidden, _,_,_,_  = encoder(input_tensor[:,ei,:,:,:], (ei==0))
 
         decoder_input = input_tensor[:,-1,:,:,:] # first decoder input= last image of input sequence
         predictions = []
 
         for di in range(target_length):
-            decoder_output, decoder_hidden, output_image,_,_ = encoder(decoder_input, False, False)
+            decoder_output, decoder_hidden, output_image,_,_,_ = encoder(decoder_input, False, False)
             decoder_input = output_image
             predictions.append(output_image)
 
