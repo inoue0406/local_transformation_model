@@ -15,7 +15,7 @@ from scipy.interpolate import griddata
 from scipy.interpolate import RegularGridInterpolator
 
 # pre-selected 
-slct_id = np.array([[2, 1],
+slct_id = np.array([#[2, 1],
                     [2, 2],
                     [3, 2],
                     [3, 3],
@@ -127,6 +127,14 @@ def read_hrncst_smoothed(lons_ij,lats_ij,fname):
     r_tmp =R[:,id_lats,:]
     r_rect =np.array(r_tmp[:,:,id_lons])
     r_rect = np.maximum(r_rect,0) # replace negative value with 0
+
+    # if outside region, return nan
+    if (np.min(lons_ij) < np.min(lons)) or (np.max(lons_ij) > np.max(lons)):
+        print("outside region: skipped") 
+        return None
+    if (np.min(lats_ij) < np.min(lats)) or (np.max(lats_ij) > np.max(lats)):
+        print("outside region: skipped") 
+        return None
     
     tdim = r_rect.shape[0] # time dimension for nowcast
     r_out = np.zeros((tdim,len(lats_ij),len(lons_ij)))
@@ -156,60 +164,62 @@ if __name__ == '__main__':
     year_day = argvs[1]
 
     # read
-    infile_root = '../data/4p-hrncstprate/'
+    infile_root = '/data/nas_data/jma_nowcast/4p-hrncstprate/'
     #infile_root = '../data/4p-hrncstprate_rerun/'
     print('input dir:',infile_root)
 
-    # outfile
-    #outfile_root = '../data/hrncst_kanto/'
-    outfile_root = '../data/hrncst_fulldata/'
-    print('output dir:',outfile_root)
+    for n in range(slct_id.shape[0]):
+        ii,jj = slct_id[n,:]
+        ijstr = "IJ_%d_%d" % (ii,jj)
+        #ii = 2
+        #jj = 1
 
-    ii = 2
-    jj = 1
-    
-    lons_ij, lats_ij = grid_ij_jma_radar(ii,jj)
+        # outfile
+        #outfile_root = '../data/hrncst_kanto/'
+        outfile_root = '../data/hrncst_fulldata/'+ijstr+"/"
+        print('output dir:',outfile_root)
 
-    nx = 200
-    ny = 200
-    nt = 7
+        if not os.path.exists(outfile_root):
+            os.mkdir(outfile_root)
+    
+        lons_ij, lats_ij = grid_ij_jma_radar(ii,jj)
 
-    # process only 00min file
-    file_list = sorted(glob.iglob(infile_root + '/*00utc.nc.gz'))
-    # process all the file
-    #file_list = sorted(glob.iglob(infile_root + '/*utc.nc.gz'))
-    file_list = sorted(glob.iglob(infile_root + '/4p-hrncstprate_japan0250_'+year_day+'*utc.nc.gz'))
-    
-    # restart
-    # file_list = file_list[4350:]
-    for infile in file_list:
-        # read 1hour data at a time
-        # initialize with -999.0
-        R1h = np.full((nt,nx,ny),-999.0,dtype=np.float32)
-    
-        in_zfile = infile
-        in_zfile_cp = in_zfile.replace(infile_root,'../data/temp/')
-        subprocess.run('cp '+in_zfile+' '+in_zfile_cp,shell=True)
+        nx = 200
+        ny = 200
+        nt = 7
         
-        print('reading zipped file:',in_zfile_cp)
-        # '-k' option for avoiding removing gz file
-        subprocess.run('gunzip -kf '+in_zfile_cp,shell=True)
-        in_nc=in_zfile_cp.replace('.gz','')
-        print('reading nc file:',in_nc)
-        if os.path.exists(in_nc):
-            R1h = read_hrncst_smoothed(lons_kanto,lats_ij,in_nc)
-        else:
-            print('nc file not found!!!',in_nc)
-        subprocess.run('rm '+in_zfile_cp,shell=True)
-        subprocess.run('rm '+in_nc,shell=True)
-        # write to h5 file
-        h5fname = infile.split('/')[-1]
-        h5fname = h5fname.replace('.nc.gz','.h5')
-        print('writing h5 file:',h5fname)
-        h5file = h5py.File(outfile_root+h5fname,'w')
-        h5file.create_dataset('R',data= R1h)
-
-
-
-
+        # process only 00min file
+        #file_list = sorted(glob.iglob(infile_root + '/*00utc.nc.gz'))
+        # process all the file
+        #file_list = sorted(glob.iglob(infile_root + '/*utc.nc.gz'))
+        file_list = sorted(glob.iglob(infile_root + '/4p-hrncstprate_japan0250_'+year_day+'*utc.nc.gz'))
+    
+        # restart
+        # file_list = file_list[4350:]
+        for infile in file_list:
+            # read 1hour data at a time
+            # initialize with -999.0
+            R1h = np.full((nt,nx,ny),-999.0,dtype=np.float32)
+        
+            in_zfile = infile
+            
+            print('reading zipped file:',in_zfile)
+            # '-k' option for avoiding removing gz file
+            subprocess.run('gunzip -kf '+in_zfile,shell=True)
+            in_nc=in_zfile.replace('.gz','')
+            print('reading nc file:',in_nc)
+            if os.path.exists(in_nc):
+                R1h = read_hrncst_smoothed(lons_ij,lats_ij,in_nc)
+                if R1h is None:
+                    continue
+            else:
+                print('nc file not found!!!',in_nc)
+                continue
+            subprocess.run('rm '+in_nc,shell=True)
+            # write to h5 file
+            h5fname = infile.split('/')[-1]
+            h5fname = h5fname.replace('.nc.gz','.h5')
+            print('writing h5 file:',h5fname)
+            h5file = h5py.File(outfile_root+h5fname,'w')
+            h5file.create_dataset('R',data= R1h)
 
