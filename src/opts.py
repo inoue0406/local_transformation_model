@@ -151,6 +151,11 @@ def parse_opts():
         help='If true, test is performed.')
     parser.set_defaults(test=False)
     parser.add_argument(
+        '--test_tail',
+        default="_",
+        type=str,
+        help='test evaluation file tail string')
+    parser.add_argument(
         '--eval_threshold',
         default=[0.5,10,20],
         type=float,

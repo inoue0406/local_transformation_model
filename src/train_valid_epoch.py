@@ -104,7 +104,7 @@ def valid_epoch(epoch,num_epochs,valid_loader,model,loss_fn,valid_logger,opt,scl
 # Test
 # --------------------------
 
-def test_CLSTM_EP(test_loader,model,loss_fn,opt,scl,threshold):
+def test_CLSTM_EP(test_loader,model,loss_fn,opt,scl,threshold,stat_size):
     print('Testing for the model')
     
     # initialize
@@ -132,6 +132,12 @@ def test_CLSTM_EP(test_loader,model,loss_fn,opt,scl,threshold):
         # apply evaluation metric
         Xtrue = scl.inv(target.data.cpu().numpy())
         Xmodel = scl.inv(output.data.cpu().numpy())
+        # take stat for the middle of the region based on stat_size
+        i1 = int((Xtrue.shape[3] - stat_size)/2)
+        i2 = i1 + stat_size
+        print("i1,i2=",i1,i2)
+        Xtrue = Xtrue[:,:,:,i1:i2,i1:i2]
+        Xmodel = Xmodel[:,:,:,i1:i2,i1:i2]
         SumSE,hit,miss,falarm,m_xy,m_xx,m_yy,MaxSE = StatRainfall(Xtrue,Xmodel,
                                                                   th=threshold)
         FSS_t = FSS_for_tensor(Xtrue,Xmodel,th=threshold,win=10)
@@ -165,8 +171,8 @@ def test_CLSTM_EP(test_loader,model,loss_fn,opt,scl,threshold):
                        'Cor':Cor,
                        'MaxMSE': MaxMSE,
                        'FSS_mean': FSS_mean})
-    df.to_csv(os.path.join(opt.result_path,
-                           'test_evaluation_predtime_%.2f.csv' % threshold), float_format='%.3f')
+    fname = 'test_evaluation_predtime_%s_%d_%.2f.csv' % (opt.test_tail,stat_size,threshold)
+    df.to_csv(os.path.join(opt.result_path,fname), float_format='%.3f')
     # free gpu memory
     del input,target,output,loss
     
