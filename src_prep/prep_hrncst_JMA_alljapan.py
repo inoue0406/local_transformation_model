@@ -200,13 +200,15 @@ if __name__ == '__main__':
             # read 1hour data at a time
             # initialize with -999.0
             R1h = np.full((nt,nx,ny),-999.0,dtype=np.float32)
-        
+
             in_zfile = infile
-            
-            print('reading zipped file:',in_zfile)
+            in_zfile_cp = in_zfile.replace(infile_root,'../data/temp/')
+            subprocess.run('cp '+in_zfile+' '+in_zfile_cp,shell=True)
+        
+            print('reading zipped file:',in_zfile_cp)
             # '-k' option for avoiding removing gz file
-            subprocess.run('gunzip -kf '+in_zfile,shell=True)
-            in_nc=in_zfile.replace('.gz','')
+            subprocess.run('gunzip -kf '+in_zfile_cp,shell=True)
+            in_nc=in_zfile_cp.replace('.gz','')
             print('reading nc file:',in_nc)
             if os.path.exists(in_nc):
                 R1h = read_hrncst_smoothed(lons_ij,lats_ij,in_nc)
@@ -215,6 +217,7 @@ if __name__ == '__main__':
             else:
                 print('nc file not found!!!',in_nc)
                 continue
+            subprocess.run('rm '+in_zfile_cp,shell=True)
             subprocess.run('rm '+in_nc,shell=True)
             # write to h5 file
             h5fname = infile.split('/')[-1]
