@@ -97,8 +97,8 @@ def create_filelist(dirpath,ijstr,dir_out,setting):
 if __name__ == '__main__':
 
     dir_out = "../data/filelist_fulldata"
-    #setting = "train"
-    setting = "valid"
+    setting = "train"
+    #setting = "valid"
     
     for n in range(slct_id.shape[0]):
         ii,jj = slct_id[n,:]
