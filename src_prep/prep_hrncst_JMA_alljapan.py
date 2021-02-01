@@ -67,7 +67,6 @@ def grid_ij_jma_radar(ii,jj):
     # ext variable
     lons = nc.variables['LON'][:]
     lats = nc.variables['LAT'][:]
-    R = nc.variables['PRATE'][:]
     #
     # clip area around tokyo
     lat_tokyo = 35.681167
@@ -92,7 +91,7 @@ def grid_ij_jma_radar(ii,jj):
     lat_clip=lats.data[jj0:jj1]
     return lon_clip, lat_clip
 
-def read_hrncst_smoothed(lons_ij,lats_ij,fname):
+def read_hrncst_smoothed(lons,lats,R,lons_ij,lats_ij):
     '''
     Read high resolution nowcast data and output in a smoothed grid
 
@@ -104,21 +103,6 @@ def read_hrncst_smoothed(lons_ij,lats_ij,fname):
     lat_min = np.min(lats_ij) - delta
     lat_max = np.max(lats_ij) + delta
 
-    #nc = netCDF4.Dataset('../data/work/jma_hrncst/4p-hrncstprate_japan0250_2017-08-01_1100utc.nc', 'r')
-    nc = netCDF4.Dataset(fname, 'r')
-    # dimensions
-    nx = len(nc.dimensions['LON'])
-    ny = len(nc.dimensions['LAT'])
-    nt = len(nc.dimensions['TIME'])
-    print("dims:",nx,ny,nt)
-    # extract variable
-    lons = np.array(nc.variables['LON'][:])
-    lats = np.array(nc.variables['LAT'][:])
-    R = nc.variables['PRATE'][:] # numpy.ma.core.MaskedArray
-    # long_name: precipitation rate
-    # units: 1e-3 meter/hour -> [mm/h]
-    # scale_factor: 0.01
-    # add_offset: 0.0
     id_lons = (lons < lon_max) * (lons > lon_min)
     id_lats = (lats < lat_max) * (lats > lat_min)
     lons_rect = lons[id_lons]
@@ -127,6 +111,7 @@ def read_hrncst_smoothed(lons_ij,lats_ij,fname):
     r_tmp =R[:,id_lats,:]
     r_rect =np.array(r_tmp[:,:,id_lons])
     r_rect = np.maximum(r_rect,0) # replace negative value with 0
+    del r_tmp
 
     # if outside region, return nan
     if (np.min(lons_ij) < np.min(lons)) or (np.max(lons_ij) > np.max(lons)):
@@ -168,58 +153,77 @@ if __name__ == '__main__':
     #infile_root = '../data/4p-hrncstprate_rerun/'
     print('input dir:',infile_root)
 
-    for n in range(slct_id.shape[0]):
-        ii,jj = slct_id[n,:]
-        ijstr = "IJ_%d_%d" % (ii,jj)
-        #ii = 2
-        #jj = 1
-
-        # outfile
-        #outfile_root = '../data/hrncst_kanto/'
-        outfile_root = '../data/hrncst_fulldata/'+ijstr+"/"
-        print('output dir:',outfile_root)
-
-        if not os.path.exists(outfile_root):
-            os.mkdir(outfile_root)
+    nx = 200
+    ny = 200
+    nt = 7
     
-        lons_ij, lats_ij = grid_ij_jma_radar(ii,jj)
+    # process only 00min file
+    #file_list = sorted(glob.iglob(infile_root + '/*00utc.nc.gz'))
+    # process all the file
+    #file_list = sorted(glob.iglob(infile_root + '/*utc.nc.gz'))
+    file_list = sorted(glob.iglob(infile_root + '/4p-hrncstprate_japan0250_'+year_day+'*utc.nc.gz'))
 
-        nx = 200
-        ny = 200
-        nt = 7
-        
-        # process only 00min file
-        #file_list = sorted(glob.iglob(infile_root + '/*00utc.nc.gz'))
-        # process all the file
-        #file_list = sorted(glob.iglob(infile_root + '/*utc.nc.gz'))
-        file_list = sorted(glob.iglob(infile_root + '/4p-hrncstprate_japan0250_'+year_day+'*utc.nc.gz'))
+    # restart
+    # file_list = file_list[4350:]
+    for infile in file_list:
+        # read 1hour data at a time
+        # initialize with -999.0
+        R1h = np.full((nt,nx,ny),-999.0,dtype=np.float32)
+
+        in_zfile = infile
+        in_zfile_cp = in_zfile.replace(infile_root,'../data/temp/')
+        subprocess.run('cp '+in_zfile+' '+in_zfile_cp,shell=True)
     
-        # restart
-        # file_list = file_list[4350:]
-        for infile in file_list:
-            # read 1hour data at a time
-            # initialize with -999.0
-            R1h = np.full((nt,nx,ny),-999.0,dtype=np.float32)
+        print('reading zipped file:',in_zfile_cp)
+        # '-k' option for avoiding removing gz file
+        subprocess.run('gunzip -kf '+in_zfile_cp,shell=True)
+        in_nc=in_zfile_cp.replace('.gz','')
         
-            in_zfile = infile
+        print('reading nc file:',in_nc)
+        if os.path.exists(in_nc):
+
+            # read the whole area
+            nc = netCDF4.Dataset(in_nc, 'r')
+            # dimensions
+            nx = len(nc.dimensions['LON'])
+            ny = len(nc.dimensions['LAT'])
+            nt = len(nc.dimensions['TIME'])
+            print("dims:",nx,ny,nt)
+            # extract variable
+            lons = np.array(nc.variables['LON'][:])
+            lats = np.array(nc.variables['LAT'][:])
+            R = np.array(nc.variables['PRATE'][:]) # numpy.ma.core.MaskedArray
+            # long_name: precipitation rate
+            # units: 1e-3 meter/hour -> [mm/h]
+            # scale_factor: 0.01
+            # add_offset: 0.0
+
+            for n in range(slct_id.shape[0]):
+                ii,jj = slct_id[n,:]
+                ijstr = "IJ_%d_%d" % (ii,jj)
+                # outfile
+                outfile_root = '../data/hrncst_fulldata/'+ijstr+"/"
+                print('output dir:',outfile_root)
+
+                if not os.path.exists(outfile_root):
+                    os.mkdir(outfile_root)
+
+                lons_ij, lats_ij = grid_ij_jma_radar(ii,jj)
             
-            print('reading zipped file:',in_zfile)
-            # '-k' option for avoiding removing gz file
-            subprocess.run('gunzip -kf '+in_zfile,shell=True)
-            in_nc=in_zfile.replace('.gz','')
-            print('reading nc file:',in_nc)
-            if os.path.exists(in_nc):
-                R1h = read_hrncst_smoothed(lons_ij,lats_ij,in_nc)
+                R1h = read_hrncst_smoothed(lons,lats,R,lons_ij,lats_ij)
                 if R1h is None:
                     continue
-            else:
-                print('nc file not found!!!',in_nc)
-                continue
-            subprocess.run('rm '+in_nc,shell=True)
-            # write to h5 file
-            h5fname = infile.split('/')[-1]
-            h5fname = h5fname.replace('.nc.gz','.h5')
-            print('writing h5 file:',h5fname)
-            h5file = h5py.File(outfile_root+h5fname,'w')
-            h5file.create_dataset('R',data= R1h)
+                # write to h5 file
+                h5fname = infile.split('/')[-1]
+                h5fname = h5fname.replace('.nc.gz','.h5')
+                print('writing h5 file:',h5fname)
+                h5file = h5py.File(outfile_root+h5fname,'w')
+                h5file.create_dataset('R',data= R1h.astype("float16"),
+                                      compression="gzip")
+            del lons,lats,R,nc
+        else:
+            print('nc file not found!!!',in_nc)
+            continue
+        subprocess.run('rm '+in_zfile_cp,shell=True)
+        subprocess.run('rm '+in_nc,shell=True)
 

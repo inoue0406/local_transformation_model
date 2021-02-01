@@ -129,8 +129,8 @@ def prep_1h_grid(year,infile_root,outfile_root):
         ijstr = "IJ_%d_%d" % (ii,jj)
         ijdir = outfile_root+ijstr+"/"
         # create result dir
-        if not os.path.exists(ijdir):
-            os.mkdir(ijdir)
+        if not os.path.exists(outfile_root+ijstr):
+            os.mkdirs(outfile_root+ijstr, exist_ok=True)
     
     for infile in sorted(glob.iglob(infile_root + '*/*/*00utc.nc.gz')):
         # read 1hour data at a time
@@ -147,13 +147,18 @@ def prep_1h_grid(year,infile_root,outfile_root):
             if os.path.exists(in_nc):
                 R_list.append(ext_nc_JMA_all(in_nc))
                 if R_list is None:
-                    next
+                    continue
             else:
                 print('nc file not found!!!',in_nc)
-                next
+                continue
             subprocess.run('rm '+in_nc,shell=True)
+            
         # create 1h data
         print("number of data in an hour",len(R_list))
+        if len(R_list) != 12:
+            print("data is short; skipped")
+            continue
+            
         Rhour = np.stack(R_list,axis=0)
         R1h = Rhour
         R1h = R1h.astype("float16")
