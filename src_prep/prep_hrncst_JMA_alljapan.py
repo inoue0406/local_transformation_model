@@ -111,6 +111,7 @@ def read_hrncst_smoothed(lons,lats,R,lons_ij,lats_ij):
     r_tmp =R[:,id_lats,:]
     r_rect =np.array(r_tmp[:,:,id_lons])
     r_rect = np.maximum(r_rect,0) # replace negative value with 0
+    del r_tmp
 
     # if outside region, return nan
     if (np.min(lons_ij) < np.min(lons)) or (np.max(lons_ij) > np.max(lons)):
@@ -151,7 +152,6 @@ if __name__ == '__main__':
     infile_root = '/data/nas_data/jma_nowcast/4p-hrncstprate/'
     #infile_root = '../data/4p-hrncstprate_rerun/'
     print('input dir:',infile_root)
-
 
     nx = 200
     ny = 200
@@ -218,7 +218,9 @@ if __name__ == '__main__':
                 h5fname = h5fname.replace('.nc.gz','.h5')
                 print('writing h5 file:',h5fname)
                 h5file = h5py.File(outfile_root+h5fname,'w')
-                h5file.create_dataset('R',data= R1h)
+                h5file.create_dataset('R',data= R1h.astype("float16"),
+                                      compression="gzip")
+            del lons,lats,R,nc
         else:
             print('nc file not found!!!',in_nc)
             continue
