@@ -1,18 +1,16 @@
 #!/bin/bash
 
-#export CUDA_VISIBLE_DEVICES=1
-
 ijstr_list=(
 "IJ_10_12"
 "IJ_10_13"
 "IJ_2_1"
 "IJ_2_2"
 "IJ_3_2"
-"IJ_3_3"
-"IJ_4_2"
-"IJ_4_3"
-"IJ_4_4"
-"IJ_4_5"
+#"IJ_3_3"
+#"IJ_4_2"
+#"IJ_4_3"
+#"IJ_4_4"
+#"IJ_4_5"
 #"IJ_4_6"
 #"IJ_4_7"
 #"IJ_5_6"
@@ -41,10 +39,10 @@ ijstr_list=(
 )
 
 for ijstr in "${ijstr_list[@]}"; do
-    case="result_20210124_persistence_fulldata_${ijstr}"
+    case="result_20210124_rainymotion_fulldata_${ijstr}"
 
     # running script for Persistence foreacst
-    python ../src/main_persistence_jma.py\
+    python ../src/main_rainymotion_jma.py\
            --data_path ../data/data_alljapan_fulldata/$ijstr/\
            --valid_data_path ../data/data_alljapan_fulldata/$ijstr/ \
            --train_path ../data/filelist_fulldata/train_JMARadar_$ijstr.csv\
@@ -56,4 +54,3 @@ for ijstr in "${ijstr_list[@]}"; do
            --tdim_use 12 --learning_rate 0.01 --batch_size 100\
            --n_epochs 10 --n_threads 4
 done
-    

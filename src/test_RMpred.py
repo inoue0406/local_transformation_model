@@ -1,6 +1,6 @@
+import numpy as np
 import torch 
 import torchvision
-import numpy as np
 import torch.utils.data as data
 import torchvision.transforms as transforms
 from torch.autograd import Variable
@@ -9,10 +9,43 @@ from jma_pytorch_dataset import *
 from utils import AverageMeter, Logger
 from criteria_precip import *
 
-# testing for "Persistence" forecast 
+import sys
+
+# optical flow forecast with RainyMotion
+
+# add rainymotion source dir
+path = os.path.join('/home/tsuyoshi/rainymotion_nw')
+sys.path.append(path)
+from rainymotion.models import *
+from rainymotion.utils import *
+
+def RM_predictor(data_past,tdim_use):
+    # prediction by rainymotion
+    # "Dense" variant of model is used
+    
+    # data_past : tensor with dimension of [tsize,width,height]
+    xmx = data_past.max() # max value
+    eps = 1.0e-3
+    if(xmx < eps):
+        # for events with no rain, simply return zero tensor
+        return(data_past) 
+    # initialize the model
+    model = Dense()
+    model.lead_steps = tdim_use
+    # scale by log transform
+    data_scaled,c1,c2 = RYScaler(data_past)
+    c2 = max(c2,1.0) # c2 should be larger than 1.0
+    #print('scaling params:',c1,c2)
+    # upload data to the model instance
+    model.input_data = data_scaled
+    # run the model with default parameters
+    nowcast = model.run()
+    # inverse scaling
+    nowcast_orig = inv_RYScaler(nowcast,c1,c2)
+    return(nowcast_orig)
             
-def test_persistence(test_loader,loss_fn,test_logger,opt,threshold,stat_size):
-    print('Test for persistence forecast')
+def test_RMpred(test_loader,loss_fn,test_logger,opt,threshold,stat_size):
+    print('Test for RainyMotion optical-flow forecast')
     
     losses = AverageMeter()
     
@@ -28,24 +61,30 @@ def test_persistence(test_loader,loss_fn,test_logger,opt,threshold,stat_size):
     FSS_t_all = np.empty((0,opt.tdim_use),float)
 
     for i_batch, sample_batched in enumerate(test_loader):
-        input = Variable(sample_batched['past'].float()).cpu()
+        #if i_batch < 51:
+        #    continue
+        input = Variable(sample_batched['past'].float()).cpu() 
         target = Variable(sample_batched['future'].float()).cpu()
-        
+         # note that no scaling is needed here, since it is taken care by RM_predictor
+
+        print('batch:',i_batch,'\n')
         # Prediction by Persistence
         output = target.clone()
-        #for n in range(test_loader.batch_size):
-        for it in range(opt.tdim_use):
-            # predict by the latest frame
-            output.data[:,it,0,:,:] = input.data[:,(opt.tdim_use-1),0,:,:]
-            # zero prediction
-            #output.data[:,it,0,:,:] = 0.0
-    
+        #for n in range(15,input.data.shape[0]):
+        print('chkprint::: 1 rmpred')
+        for n in range(input.data.shape[0]):
+            print('past file name:',n,sample_batched['fnames_past'][n])
+            output.data[n,:,0,:,:] = torch.from_numpy(RM_predictor(input.data.numpy()[n,:,0,:,:],opt.tdim_use))
+            
+        print('chkprint::: 2 loss')
         loss = loss_fn(output, target)
 
         # for logging
+        print('chkprint::: 3 loss update')
         losses.update(loss.item(), input.size(0))
         
         # apply evaluation metric
+        print('chkprint::: 4 eval')
         Xtrue = target.data.cpu().numpy()
         Xmodel = output.data.cpu().numpy()
         # take stat for the middle of the region based on stat_size
@@ -54,9 +93,12 @@ def test_persistence(test_loader,loss_fn,test_logger,opt,threshold,stat_size):
         print("i1,i2=",i1,i2)
         Xtrue = Xtrue[:,:,:,i1:i2,i1:i2]
         Xmodel = Xmodel[:,:,:,i1:i2,i1:i2]
-        SumSE,hit,miss,falarm,m_xy,m_xx,m_yy,MaxSE = StatRainfall(Xtrue,Xmodel,th=threshold)
+        
+        SumSE,hit,miss,falarm,m_xy,m_xx,m_yy,MaxSE = StatRainfall(target.data.cpu().numpy(),
+                                                            output.data.cpu().numpy(),
+                                                            th=threshold)
         FSS_t = FSS_for_tensor(Xtrue,Xmodel,th=threshold,win=10)
-        # stat
+        
         SumSE_all = np.append(SumSE_all,SumSE,axis=0)
         hit_all = np.append(hit_all,hit,axis=0)
         miss_all = np.append(miss_all,miss,axis=0)
@@ -71,10 +113,14 @@ def test_persistence(test_loader,loss_fn,test_logger,opt,threshold,stat_size):
         if (i_batch+1) % 1 == 0:
             print ('Testing, Iter [%d/%d] Loss: %.4e' 
                    %(i_batch+1, len(test_loader.dataset)//test_loader.batch_size, loss.item()))
+            
+        # free memory
+        del input,target,output,loss
+        
     # logging for averaged loss
     RMSE,CSI,FAR,POD,Cor,MaxMSE,FSS_mean = MetricRainfall(SumSE_all,hit_all,miss_all,falarm_all,
-                                          m_xy_all,m_xx_all,m_yy_all,
-                                          MaxSE_all,FSS_t_all,axis=None)
+                                                          m_xy_all,m_xx_all,m_yy_all,
+                                                          MaxSE_all,FSS_t_all,axis=None)
     test_logger.log({
         'loss': losses.avg,
         'RMSE': RMSE,
@@ -83,12 +129,12 @@ def test_persistence(test_loader,loss_fn,test_logger,opt,threshold,stat_size):
         'POD': POD,
         'Cor': Cor,
         'MaxMSE': MaxMSE,
-        'FSS_mean': FSS_mean,
-        })
+        'FSS_mean': FSS_mean})
+
     # logging for loss by time
     RMSE,CSI,FAR,POD,Cor,MaxMSE,FSS_mean = MetricRainfall(SumSE_all,hit_all,miss_all,falarm_all,
-                                          m_xy_all,m_xx_all,m_yy_all,
-                                          MaxSE_all,FSS_t_all,axis=(0))
+                                                          m_xy_all,m_xx_all,m_yy_all,
+                                                          MaxSE_all,FSS_t_all,axis=(0))
     # save evaluated metric as csv file
     tpred = (np.arange(opt.tdim_use)+1.0)*5.0 # in minutes
     # import pdb; pdb.set_trace()
@@ -99,9 +145,7 @@ def test_persistence(test_loader,loss_fn,test_logger,opt,threshold,stat_size):
                        'POD':POD,
                        'Cor':Cor,
                        'MaxMSE': MaxMSE,
-                       'FSS_mean': FSS_mean,
-                       })
+                       'FSS_mean': FSS_mean})
     fname = 'test_evaluation_predtime_%s_%d_%.2f.csv' % (opt.test_tail,stat_size,threshold)
     df.to_csv(os.path.join(opt.result_path,fname), float_format='%.3f')
-
     

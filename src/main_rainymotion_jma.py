@@ -11,13 +11,15 @@ import sys
 import json
 import time
 
+import pdb
+
 from jma_pytorch_dataset import *
-from scaler import *
-from test_persistence import *
+from test_RMpred import *
 from utils import Logger
 from opts import parse_opts
 
-# Persistence Forecast
+# Prediction by Optical Flow with RainyMotion
+# and semi-Lagrangian advection
 
 if __name__ == '__main__':
    
@@ -35,7 +37,7 @@ if __name__ == '__main__':
     logfile = open(os.path.join(opt.result_path, 'log_run.txt'),'w')
     logfile.write('Start time:'+time.ctime()+'\n')
     tstart = time.time()
-            
+        
     # loading datasets (we only need testation data)
     test_dataset = JMARadarDataset(root_dir=opt.data_path,
                                     csv_file=opt.train_path,
@@ -49,13 +51,13 @@ if __name__ == '__main__':
         os.path.join(opt.result_path, 'test.log'),
         ['loss', 'RMSE', 'CSI', 'FAR', 'POD', 'Cor'])
 
-    # Test for Persistence Forecast
+    # Test for Optical Flow Forecast
     loss_fn = torch.nn.MSELoss()
     # testing for the trained model
     for threshold in opt.eval_threshold:
         for stat_size in [200,160]:
-            test_persistence(test_loader,loss_fn,
-                             test_logger,opt,threshold,stat_size)
+            test_RMpred(test_loader,loss_fn,
+                        test_logger,opt,threshold,stat_size)
 
     # output elapsed time
     logfile.write('End time: '+time.ctime()+'\n')
