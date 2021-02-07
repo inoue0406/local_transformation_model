@@ -40,7 +40,7 @@ if __name__ == '__main__':
         
     # loading datasets (we only need testation data)
     test_dataset = JMARadarDataset(root_dir=opt.data_path,
-                                    csv_file=opt.train_path,
+                                    csv_file=opt.test_path,
                                     tdim_use=opt.tdim_use,
                                     transform=None)
     test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
