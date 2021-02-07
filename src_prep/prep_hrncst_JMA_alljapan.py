@@ -56,7 +56,8 @@ def grid_ij_jma_radar(ii,jj):
     This routine returns lon-lat grid, which is consistent with JMA radar data
     around IJ specified Region in Japan
     '''
-    nc = netCDF4.Dataset('/data/nas_data/jma_radar/2015/01/01/2p-jmaradar5_2015-01-01_0000utc.nc', 'r')
+    #nc = netCDF4.Dataset('/data/nas_data/jma_radar/2015/01/01/2p-jmaradar5_2015-01-01_0000utc.nc', 'r')
+    nc = netCDF4.Dataset('../data/temp/2p-jmaradar5_2015-01-01_0000utc.nc', 'r')
     #
     # dimensions
     nx = len(nc.dimensions['LON'])
@@ -149,7 +150,9 @@ if __name__ == '__main__':
     year_day = argvs[1]
 
     # read
-    infile_root = '/data/nas_data/jma_nowcast/4p-hrncstprate/'
+    #infile_root = '/data/nas_data/jma_nowcast/4p-hrncstprate/'
+    infile_root = '/inoue_home_nas/data/jma_nowcast/4p-hrncstprate/'
+    
     #infile_root = '../data/4p-hrncstprate_rerun/'
     print('input dir:',infile_root)
 
@@ -162,6 +165,14 @@ if __name__ == '__main__':
     # process all the file
     #file_list = sorted(glob.iglob(infile_root + '/*utc.nc.gz'))
     file_list = sorted(glob.iglob(infile_root + '/4p-hrncstprate_japan0250_'+year_day+'*utc.nc.gz'))
+
+    # initializa lons_ij, lats_ij pair
+    lonlat_list = []
+    for n in range(slct_id.shape[0]):
+        ii,jj = slct_id[n,:]
+        ijstr = "IJ_%d_%d" % (ii,jj)
+        lons_ij, lats_ij = grid_ij_jma_radar(ii,jj)
+        lonlat_list.append([lons_ij,lats_ij])
 
     # restart
     # file_list = file_list[4350:]
@@ -208,10 +219,14 @@ if __name__ == '__main__':
                 if not os.path.exists(outfile_root):
                     os.mkdir(outfile_root)
 
-                lons_ij, lats_ij = grid_ij_jma_radar(ii,jj)
+                #lons_ij, lats_ij = grid_ij_jma_radar(ii,jj)
+                lons_ij = lonlat_list[n][0]
+                lats_ij = lonlat_list[n][1]
             
                 R1h = read_hrncst_smoothed(lons,lats,R,lons_ij,lats_ij)
                 if R1h is None:
+                    # remove stray file
+                    subprocess.run('rm ../data/temp/4p-hrncst*',shell=True)
                     continue
                 # write to h5 file
                 h5fname = infile.split('/')[-1]
@@ -223,7 +238,13 @@ if __name__ == '__main__':
             del lons,lats,R,nc
         else:
             print('nc file not found!!!',in_nc)
+            # remove stray file
+            subprocess.run('rm ../data/temp/4p-hrncst*',shell=True)
             continue
-        subprocess.run('rm '+in_zfile_cp,shell=True)
-        subprocess.run('rm '+in_nc,shell=True)
+        if os.path.exists(in_zfile_cp):
+            os.remove(in_zfile_cp)
+        if os.path.exists(in_nc):
+            os.remove(in_nc)
+        #subprocess.run('rm '+in_zfile_cp,shell=True)
+        #subprocess.run('rm '+in_nc,shell=True)
 
