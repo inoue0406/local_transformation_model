@@ -46,7 +46,7 @@ def mod_str_interval(inte_str):
 
 # plot comparison of predicted vs ground truth
 def plot_comp_prediction(data_path,filelist,model_name,model_fname,batch_size,tdim_use,
-                         df_sampled,pic_path,scl,case,img_size,mode='png_whole'):
+                         df_sampled,pic_path,scl,case,img_size,num_filters,mode='png_whole'):
     # create pic save dir
     if not os.path.exists(pic_path):
         os.mkdir(pic_path)
@@ -64,18 +64,22 @@ def plot_comp_prediction(data_path,filelist,model_name,model_fname,batch_size,td
     if model_name == 'clstm':
         # convolutional lstm
         from models_trajGRU.model import EF
-        encoder_params,forecaster_params = model_structure_convLSTM(img_size,batch_size,model_name)
+        encoder_params,forecaster_params = model_structure_convLSTM(img_size,batch_size,
+                                                                    model_name,num_filters)
         encoder = Encoder(encoder_params[0], encoder_params[1]).to(device)
         forecaster = Forecaster(forecaster_params[0], forecaster_params[1],tdim_use).to(device)
         model = EF(encoder, forecaster).to(device)
     elif model_name == 'trajgru':
         # trajGRU model
         from models_trajGRU.model import EF
-        encoder_params,forecaster_params = model_structure_trajGRU(img_size,batch_size,model_name)
+        #import pdb;pdb.set_trace()
+        encoder_params,forecaster_params = model_structure_trajGRU(img_size,batch_size,
+                                                                   model_name,num_filters)
         encoder = Encoder(encoder_params[0], encoder_params[1]).to(device)
         forecaster = Forecaster(forecaster_params[0], forecaster_params[1],tdim_use).to(device)
         model = EF(encoder, forecaster).to(device)
     # load weights
+
     model.load_state_dict(torch.load(model_fname))
     # evaluation mode
     model.eval()
@@ -117,14 +121,14 @@ def plot_comp_prediction(data_path,filelist,model_name,model_fname,batch_size,td
                     dtstr = str((id+1)*5)
                     # target
                     plt.subplot(2,6,pos)
-                    #im = plt.imshow(pic_tg[id,:,:],vmin=0,vmax=50,cmap=cm,origin='lower')
-                    im = plt.imshow(pic_tg[id,:,:].transpose(),vmin=0,vmax=50,cmap=cm,origin='lower')
+                    im = plt.imshow(pic_tg[id,:,:],vmin=0,vmax=50,cmap=cm,origin='lower')
+                    #im = plt.imshow(pic_tg[id,:,:].transpose(),vmin=0,vmax=50,cmap=cm,origin='lower')
                     plt.title("true:"+dtstr+"min")
                     plt.grid()
                     # predicted
                     plt.subplot(2,6,pos+6)
-                    #im = plt.imshow(pic_pred[id,:,:],vmin=0,vmax=50,cmap=cm,origin='lower')
-                    im = plt.imshow(pic_pred[id,:,:].transpose(),vmin=0,vmax=50,cmap=cm,origin='lower')
+                    im = plt.imshow(pic_pred[id,:,:],vmin=0,vmax=50,cmap=cm,origin='lower')
+                    #im = plt.imshow(pic_pred[id,:,:].transpose(),vmin=0,vmax=50,cmap=cm,origin='lower')
                     plt.title("pred:"+dtstr+"min")
                     plt.grid()
                 fig.subplots_adjust(right=0.95)
@@ -191,11 +195,16 @@ if __name__ == '__main__':
     #model_name = 'clstm'
     #model_name = 'trajgru'
 
-    #data_path = '../data/data_kanto_resize/'
     data_path = '../data/data_kanto/'
+    #data_path = '../data/data_alljapan_fulldata/IJ_9_9/'
+    
     filelist = '../data/valid_simple_JMARadar.csv'
+    #filelist = '../data/filelist_fulldata/train_JMARadar_IJ_9_9.csv'
+    
     model_fname = case + '/trained_CLSTM.dict'
     pic_path = case + '/png/'
+    
+    num_filters = [8,32,96,96]
 
     data_scaling = 'linear'
     
@@ -218,6 +227,6 @@ if __name__ == '__main__':
     print(df_sampled)
     
     plot_comp_prediction(data_path,filelist,model_name,model_fname,batch_size,tdim_use,
-                         df_sampled,pic_path,scl,case,img_size,mode='png_ind')
+                         df_sampled,pic_path,scl,case,img_size,num_filters,mode='png_ind')
 
 
