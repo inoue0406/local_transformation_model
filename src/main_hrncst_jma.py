@@ -18,7 +18,7 @@ def get_model_true_pairs(infile):
         print("file NOT found")
         return None,None
     h5file = h5py.File(infile,'r')
-    rain_pred = h5file['R'][()]
+    rain_pred = h5file['R'][()].astype(np.float32) # cast to float 32 is necessary!
     rain_pred = np.maximum(rain_pred,0) # replace negative value with
     rain_pred = rain_pred[1:,:,:] # remove initial
     
@@ -84,7 +84,7 @@ def eval_on_threshold(file_list,threshold,tdim_use,result_path,stat_size,test_ta
         FSS_t_all = np.append(FSS_t_all,FSS_t,axis=0)
         #
         flist_all.append(infile)
-        #if i > 10:
+        #if i > 30:
         #    break
 
     # ------------------------------------------------------------------
@@ -95,7 +95,6 @@ def eval_on_threshold(file_list,threshold,tdim_use,result_path,stat_size,test_ta
     
     # save evaluated metric as csv file
     tpred = (np.arange(tdim_use)+1.0)*5.0 # in minutes
-    # import pdb; pdb.set_trace()
     df = pd.DataFrame({'tpred_min':tpred,
                        'RMSE':RMSE,
                        'CSI':CSI,
@@ -106,7 +105,7 @@ def eval_on_threshold(file_list,threshold,tdim_use,result_path,stat_size,test_ta
                        'FSS_mean': FSS_mean,
                        })
     fname = 'test_evaluation_predtime_%s_%d_%.2f.csv' % (test_tail,stat_size,threshold)
-    df.to_csv(os.path.join(opt.result_path,fname), float_format='%.3f')
+    df.to_csv(os.path.join(result_path,fname), float_format='%.3f')
     return
 
 if __name__ == '__main__':
@@ -135,7 +134,8 @@ if __name__ == '__main__':
         os.mkdir(result_path)
 
     for threshold in thresholds:
-        for stat_size in [200,160]:
+        #for stat_size in [200,160]:
+        for stat_size in [160]:
             print("evaluation for the threshold ",threshold)
             eval_on_threshold(file_list,threshold,tdim_use,result_path,stat_size,test_tail)
                     

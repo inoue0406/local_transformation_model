@@ -3,7 +3,6 @@
 # 
 
 import numpy as np
-import pdb
 
 from fss import *
 
@@ -187,8 +186,6 @@ if __name__ == '__main__':
     FSS_t = FSS_for_tensor(Xtrue,Xmodel,th=0.5)
     
     RMSE,CSI,FAR,POD,Cor,MaxMSE,FSS_mean = MetricRainfall(SumSE,hit,miss,falarm,m_xy,m_xx,m_yy,MaxSE,FSS_t)
-
-    pdb.set_trace()
     
     FSS_t = FSS_for_tensor(Xtrue,Xmodel,th=0.5)
     print('FSS threshold=0.5')

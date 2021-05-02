@@ -81,39 +81,13 @@ def plot_comp_prediction(data_path,filelist,batch_size,tdim_use,
             next
         # convert to cpu
         pic = target[n,:,0,:,:].cpu()
-        pic_tg = pic.data.numpy()*201.0
+        pic_tg = pic.data.numpy()
         pic = output[n,:,0,:,:].cpu()
-        pic_pred = pic.data.numpy()*201.0
+        pic_pred = pic.data.numpy()
         # print
         print('Plotting: ',fname,np.max(pic_tg),np.max(pic_pred))
         # plot
         cm = Colormap_JMA()
-        if mode == 'png_whole': # output as stationary image
-            fig, ax = plt.subplots(figsize=(20, 10))
-            fig.suptitle("Precip prediction starting at: "+fname, fontsize=20)
-            for nt in range(6):
-                id = nt*2+1
-                pos = nt+1
-                dtstr = str((id+1)*5)
-                # target
-                plt.subplot(2,6,pos)
-                im = plt.imshow(pic_tg[id,:,:],vmin=0,vmax=50,cmap=cm,origin='lower')
-                plt.title("true:"+dtstr+"min")
-                plt.grid()
-                # predicted
-                plt.subplot(2,6,pos+6)
-                im = plt.imshow(pic_pred[id,:,:],vmin=0,vmax=50,cmap=cm,origin='lower')
-                plt.title("pred:"+dtstr+"min")
-                plt.grid()
-            fig.subplots_adjust(right=0.95)
-            cbar_ax = fig.add_axes([0.96, 0.15, 0.01, 0.7])
-            fig.colorbar(im, cax=cbar_ax)
-            # save as png
-            i = df_sampled.index[df_sampled['fname']==fname]
-            i = int(i.values)
-            interval = mod_str_interval(df_sampled['rcategory'].iloc[i])
-            plt.savefig(pic_path+'comp_pred_'+interval+fname+'.png')
-            plt.close()
         if mode == 'png_ind': # output as individual image
             for nt in range(6):
                 fig, ax = plt.subplots(figsize=(8, 4))
@@ -124,12 +98,14 @@ def plot_comp_prediction(data_path,filelist,batch_size,tdim_use,
                 dtstr = str((id+1)*5)
                 # target
                 plt.subplot(1,2,1)
-                im = plt.imshow(pic_tg[id,:,:],vmin=0,vmax=50,cmap=cm,origin='lower')
+                #im = plt.imshow(pic_tg[id,:,:],vmin=0,vmax=50,cmap=cm,origin='lower')
+                im = plt.imshow(pic_tg[id,:,:].transpose(),vmin=0,vmax=50,cmap=cm,origin='lower')
                 plt.title("true:"+dtstr+"min")
                 plt.grid()
                 # predicted
                 plt.subplot(1,2,2)
-                im = plt.imshow(pic_pred[id,:,:],vmin=0,vmax=50,cmap=cm,origin='lower')
+                #im = plt.imshow(pic_pred[id,:,:],vmin=0,vmax=50,cmap=cm,origin='lower')
+                im = plt.imshow(pic_pred[id,:,:].transpose(),vmin=0,vmax=50,cmap=cm,origin='lower')
                 plt.title("pred:"+dtstr+"min")
                 plt.grid()
                 # color bar
@@ -150,12 +126,12 @@ if __name__ == '__main__':
     batch_size = 10
     tdim_use = 12
 
-    data_path = '../data/data_h5/'
+    data_path = '../data/data_kanto/'
     filelist = '../data/valid_simple_JMARadar.csv'
-    pic_path = 'result_20180827_oflow/png/'
+    pic_path = 'result_20210124_rainymotion_fulldata_IJ_9_9/png/'
 
     # samples to be plotted
-    sample_path = '../data/sampled_forplot_JMARadar.csv'
+    sample_path = '../data/sampled_forplot_3day_JMARadar.csv'
 
     # read sampled data in csv
     df_sampled = pd.read_csv(sample_path)

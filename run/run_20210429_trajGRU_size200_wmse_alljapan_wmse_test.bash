@@ -41,7 +41,7 @@ ijstr_list=(
 )
 
 for ijstr in "${ijstr_list[@]}"; do
-    case="result_20210121_trajGRU_size200_alljapan_wmse_trans_${ijstr}"
+    case="result_20210116_trajGRU_size200_alljapan_wmse_test_fulldata"
     
 #    # running script for Rainfall Prediction with ConvLSTM
 #    python ../src/main_trajGRU_jma.py --model_name trajgru\
